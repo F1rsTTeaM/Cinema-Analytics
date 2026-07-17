@@ -24,7 +24,7 @@ function App() {
     setMessage('');
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', {
+      const response = await axios.post('https://localhost:8443/api/auth/login', {
         username: username,
         password: password
       });
@@ -47,7 +47,7 @@ function App() {
     setMessage('');
 
     try {
-      await axios.post('http://localhost:8080/api/auth/register', {
+      await axios.post('https://localhost:8443/api/auth/register', {
         username,
         email,
         password
