@@ -11,7 +11,7 @@ public class TestController {
         return "Backend работает";
     }
     
-    @GetMapping("/api/user/profile")
+    @GetMapping("/api/user/profile1")
     public String profile() {
         return "Это защищённый эндпоинт. Ты авторизован!";
     }

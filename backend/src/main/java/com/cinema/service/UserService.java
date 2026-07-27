@@ -16,7 +16,7 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public User registerUser(String username, String email, String password) {
+    public User registerUser(String username, String email, String password, String role) {
         if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("Пользователь уже существует");
         }
@@ -28,7 +28,12 @@ public class UserService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole(Role.ROLE_USER);
+
+        if (role != null && role.equalsIgnoreCase("ADMIN")) {
+            user.setRole(Role.ROLE_ADMIN);
+        } else {
+            user.setRole(Role.ROLE_USER);
+        }
 
         return userRepository.save(user);
     }

@@ -1,0 +1,233 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 24px;
+  color: #333;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: bold;
+}
+
+.info {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-weight: 600;
+  color: #555;
+  font-size: 14px;
+}
+
+.infoValue {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  word-break: break-all;
+  text-align: right;
+}
+
+.adminRole {
+  color: #FF9800;
+  font-weight: 700;
+}
+
+.userRole {
+  color: #4CAF50;
+  font-weight: 700;
+}
+
+.tokenValue {
+  font-size: 12px;
+  color: #666;
+  background: #e8e8e8;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkButton {
+  padding: 12px 24px;
+  background: #FF9800;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s, transform 0.1s;
+  width: 100%;
+}
+
+.checkButton:hover {
+  background: #e68900;
+}
+
+.checkButton:active {
+  transform: scale(0.98);
+}
+
+.dashboardButton {
+  padding: 12px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s, transform 0.1s;
+  width: 100%;
+}
+
+.dashboardButton:hover {
+  background: #5a6fd6;
+}
+
+.dashboardButton:active {
+  transform: scale(0.98);
+}
+
+.adminButton {
+  padding: 12px 24px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s, transform 0.1s;
+  width: 100%;
+}
+
+.adminButton:hover {
+  background: #d32f2f;
+}
+
+.adminButton:active {
+  transform: scale(0.98);
+}
+
+.logoutButton {
+  padding: 12px 24px;
+  background: #757575;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.3s, transform 0.1s;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.logoutButton:hover {
+  background: #616161;
+}
+
+.logoutButton:active {
+  transform: scale(0.98);
+}
+
+.message {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.error {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.success {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .card {
+    padding: 24px;
+  }
+  .title {
+    font-size: 22px;
+  }
+  .infoRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .infoValue {
+    text-align: left;
+    width: 100%;
+  }
+  .checkButton, .dashboardButton, .adminButton, .logoutButton {
+    font-size: 14px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 20px;
+  }
+  .title {
+    font-size: 18px;
+  }
+  .infoLabel, .infoValue {
+    font-size: 13px;
+  }
+  .checkButton, .dashboardButton, .adminButton, .logoutButton {
+    font-size: 13px;
+    padding: 8px;
+  }
+  .tokenValue {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
