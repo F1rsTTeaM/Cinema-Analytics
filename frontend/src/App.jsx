@@ -6,6 +6,7 @@ import ProfilePage from './components/ProfilePage/ProfilePage';
 import Navbar from './components/Navbar/Navbar';
 import UserDashboard from './pages/UserDashboard/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
+import MoviesPage from './pages/MoviesPage/MoviesPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem('token');
@@ -84,6 +85,12 @@ function App() {
         <Route path="/admin-dashboard" element={
           <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
             <AdminDashboard user={user} />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/movies" element={
+          <ProtectedRoute>
+            <MoviesPage />
           </ProtectedRoute>
         } />
 

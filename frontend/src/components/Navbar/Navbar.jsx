@@ -18,6 +18,13 @@ function Navbar({ user, onLogout }) {
           Пользователь
         </button>
 
+        <button 
+          onClick={() => navigate('/movies')} 
+          className={styles.navButton}
+        >
+          Фильмы
+        </button>
+
         {isAdmin && (
           <button 
             onClick={() => navigate('/admin-dashboard')} 
