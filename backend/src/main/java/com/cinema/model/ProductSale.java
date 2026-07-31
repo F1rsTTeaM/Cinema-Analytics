@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,8 +24,17 @@ public class ProductSale {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @Column(name = "product_name", nullable = false)
+    private String productName;
+
+    @Column(name = "product_price", nullable = false)
+    private BigDecimal productPrice;
+
     @Column(nullable = false)
     private Integer count;
+
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount;
 
     @CreationTimestamp
     @Column(name = "sale_date", updatable = false)
@@ -33,5 +43,8 @@ public class ProductSale {
     public ProductSale(Product product, Integer count) {
         this.product = product;
         this.count = count;
+        this.productName = product.getName();
+        this.productPrice = product.getPrice();
+        this.totalAmount = product.getPrice().multiply(BigDecimal.valueOf(count));
     }
 }

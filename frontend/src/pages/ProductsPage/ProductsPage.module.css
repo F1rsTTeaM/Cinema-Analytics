@@ -69,7 +69,7 @@
 .cardRow {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* ← Выравнивание по центру */
+  align-items: center;
   gap: 12px;
 }
 
@@ -81,7 +81,7 @@
 .productName {
   font-size: 18px;
   color: #333;
-  margin: 0 0 4px 0; /* ← Уменьшен отступ снизу */
+  margin: 0 0 4px 0;
   font-weight: 600;
   word-break: break-word;
 }

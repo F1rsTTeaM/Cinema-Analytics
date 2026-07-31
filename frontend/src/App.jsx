@@ -8,6 +8,7 @@ import UserDashboard from './pages/UserDashboard/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import MoviesPage from './pages/MoviesPage/MoviesPage';
 import ProductsPage from './pages/ProductsPage/ProductsPage';
+import SalesPage from './pages/SalesPage/SalesPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem('token');
@@ -98,6 +99,12 @@ function App() {
         <Route path="/products" element={
           <ProtectedRoute>
             <ProductsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/sales" element={
+          <ProtectedRoute>
+            <SalesPage />
           </ProtectedRoute>
         } />
 

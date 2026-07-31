@@ -40,7 +40,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/h2-console/**", "/api/auth/**", "/hello").permitAll()
                         .requestMatchers("/api/admin/**", "/api/reports/**").hasRole("ADMIN")
-                        .requestMatchers("/api/user/**", "/api/movies/**", "/api/sessions/**", "/api/products/**", "/api/sales/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/user/**", "/api/movies/**", "/api/sessions/**", "/api/products/**",
+                                "/api/sales/**")
+                        .hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -68,7 +70,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration
                 .setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
