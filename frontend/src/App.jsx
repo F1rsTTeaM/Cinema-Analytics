@@ -7,6 +7,7 @@ import Navbar from './components/Navbar/Navbar';
 import UserDashboard from './pages/UserDashboard/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import MoviesPage from './pages/MoviesPage/MoviesPage';
+import ProductsPage from './pages/ProductsPage/ProductsPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem('token');
@@ -91,6 +92,12 @@ function App() {
         <Route path="/movies" element={
           <ProtectedRoute>
             <MoviesPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/products" element={
+          <ProtectedRoute>
+            <ProductsPage />
           </ProtectedRoute>
         } />
 

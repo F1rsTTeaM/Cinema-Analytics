@@ -25,6 +25,13 @@ function Navbar({ user, onLogout }) {
           Фильмы
         </button>
 
+        <button 
+          onClick={() => navigate('/products')} 
+          className={styles.navButton}
+        >
+          Продукты
+        </button>
+
         {isAdmin && (
           <button 
             onClick={() => navigate('/admin-dashboard')} 

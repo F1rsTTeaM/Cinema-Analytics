@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMovies } from '../../hooks/useMovies';
 import MovieForm from '../../components/MovieForm/MovieForm';
 import styles from './MoviesPage.module.css';
@@ -19,6 +19,16 @@ function MoviesPage() {
     const [editingMovie, setEditingMovie] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [formLoading, setFormLoading] = useState(false);
+
+    useEffect(() => {
+        if (message) {
+            const timer = setTimeout(() => {
+                setMessage('');
+            }, 1500);
+            
+            return () => clearTimeout(timer);
+        }
+    }, [message, setMessage]);
 
     const handleCreate = async (data) => {
         setFormLoading(true);
@@ -53,10 +63,6 @@ function MoviesPage() {
         const query = e.target.value;
         setSearchQuery(query);
         searchMovies(query);
-    };
-
-    const clearMessage = () => {
-        setTimeout(() => setMessage(''), 5000);
     };
 
     return (
