@@ -9,6 +9,9 @@ import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import MoviesPage from './pages/MoviesPage/MoviesPage';
 import ProductsPage from './pages/ProductsPage/ProductsPage';
 import SalesPage from './pages/SalesPage/SalesPage';
+import SessionsPage from './pages/SessionsPage/SessionsPage';
+import HallsPage from './pages/HallsPage/HallsPage';
+import ReportsPage from './pages/ReportsPage/ReportsPage';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const token = localStorage.getItem('token');
@@ -105,6 +108,24 @@ function App() {
         <Route path="/sales" element={
           <ProtectedRoute>
             <SalesPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/sessions" element={
+          <ProtectedRoute>
+            <SessionsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/halls" element={
+          <ProtectedRoute>
+            <HallsPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/reports" element={
+          <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+            <ReportsPage />
           </ProtectedRoute>
         } />
 

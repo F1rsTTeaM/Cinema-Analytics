@@ -1,12 +1,14 @@
 package com.cinema.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "sessions")
@@ -14,6 +16,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Session {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,15 +41,63 @@ public class Session {
     @Enumerated(EnumType.STRING)
     private SessionStatus status = SessionStatus.SCHEDULED;
 
-    @Column(name = "sale_time")
-    private LocalDateTime saleTime;
+    @ElementCollection
+    @CollectionTable(name = "session_sold_seats", joinColumns = @JoinColumn(name = "session_id"))
+    @Column(name = "seat")
+    private List<String> soldSeats = new ArrayList<>();
 
-    public Session(Movie movie, Hall hall, LocalDateTime startTime, LocalDateTime endTime, BigDecimal ticketPrice, LocalDateTime saleTime) {
+    @Column(name = "total_amount", precision = 10, scale = 2)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
+    public Session(Movie movie, Hall hall, LocalDateTime startTime, LocalDateTime endTime, BigDecimal ticketPrice) {
         this.movie = movie;
         this.hall = hall;
         this.startTime = startTime;
         this.endTime = endTime;
         this.ticketPrice = ticketPrice;
-        this.saleTime = saleTime;
+        this.status = SessionStatus.SCHEDULED;
+        this.soldSeats = new ArrayList<>();
+        this.totalAmount = BigDecimal.ZERO;
+    }
+
+    public void addSoldSeat(String seat) {
+        if (this.soldSeats == null) {
+            this.soldSeats = new ArrayList<>();
+        }
+        this.soldSeats.add(seat);
+        this.totalAmount = this.totalAmount.add(this.ticketPrice);
+    }
+
+    public int getSoldCount() {
+        return this.soldSeats != null ? this.soldSeats.size() : 0;
+    }
+
+    public boolean isSeatAvailable(String seat) {
+        return this.soldSeats == null || !this.soldSeats.contains(seat);
+    }
+
+    public List<String> getAvailableSeats() {
+        List<String> allSeats = new ArrayList<>();
+        for (int row = 1; row <= hall.getRowsCount(); row++) {
+            for (int seat = 1; seat <= hall.getSeatsPerRow(); seat++) {
+                String seatKey = row + "-" + seat;
+                if (isSeatAvailable(seatKey)) {
+                    allSeats.add(seatKey);
+                }
+            }
+        }
+        return allSeats;
+    }
+
+    public int getAvailableCount() {
+        return getAvailableSeats().size();
     }
 }

@@ -36,12 +36,6 @@
   background: #5a6fd6;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
 .toolbar {
   display: flex;
   gap: 12px;
@@ -77,6 +71,12 @@
 
 .refreshButton:hover {
   background: #43a047;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
 }
 
 .card {
@@ -141,49 +141,6 @@
   font-weight: 600;
   color: #333;
   font-size: 14px;
-}
-
-.schemePreview {
-  margin-top: 12px;
-  padding: 12px;
-  background: #f5f5f5;
-  border-radius: 8px;
-}
-
-.schemeScreen {
-  text-align: center;
-  padding: 4px;
-  background: #1a1a2e;
-  color: white;
-  border-radius: 4px;
-  font-size: 18px;
-  margin-bottom: 8px;
-}
-
-.schemeSeats {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: center;
-}
-
-.schemeRow {
-  display: flex;
-  gap: 4px;
-}
-
-.schemeSeat {
-  width: 16px;
-  height: 16px;
-  background: #4CAF50;
-  border-radius: 3px;
-}
-
-.schemeMore {
-  font-size: 12px;
-  color: #888;
-  text-align: center;
-  margin-top: 4px;
 }
 
 .cardActions {
@@ -277,12 +234,6 @@
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 .inputError {
   border-color: #f44336 !important;
   background-color: #fff5f5;
@@ -315,55 +266,10 @@
   margin-top: 4px;
 }
 
-.message {
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  animation: slideDown 0.3s ease;
-}
-
-.success {
-  background: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
-}
-
-.error {
-  background: #ffebee;
-  color: #c62828;
-  border: 1px solid #ffcdd2;
-}
-
-.closeMessage {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: inherit;
-  padding: 0 4px;
-}
-
-.formSuccess {
-  background: #e8f5e9;
-  color: #2e7d32;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  font-size: 14px;
-  border: 1px solid #c8e6c9;
-  animation: slideDown 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.formSuccess::before {
-  content: '🎉';
-  font-size: 18px;
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .preview {
@@ -435,6 +341,38 @@
 
 .cancelButton:hover {
   background: #d0d0d0;
+}
+
+.message {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  animation: slideDown 0.3s ease;
+}
+
+.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.error {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.closeMessage {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: inherit;
+  padding: 0 4px;
 }
 
 .loading,

@@ -39,6 +39,29 @@ function Navbar({ user, onLogout }) {
           Продажи
         </button>
 
+        <button 
+          onClick={() => navigate('/sessions')} 
+          className={styles.navButton}
+        >
+          Сессии
+        </button>
+
+        <button 
+          onClick={() => navigate('/halls')} 
+          className={styles.navButton}
+        >
+          Залы
+        </button>
+
+        {isAdmin && (
+          <button 
+            onClick={() => navigate('/reports')} 
+            className={styles.navButton}
+          >
+            Отчеты
+          </button>
+        )}
+
         {isAdmin && (
           <button 
             onClick={() => navigate('/admin-dashboard')} 
