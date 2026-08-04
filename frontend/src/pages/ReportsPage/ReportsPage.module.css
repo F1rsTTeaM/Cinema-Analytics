@@ -46,6 +46,8 @@
   outline: none;
   transition: border-color 0.3s;
   background: white;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .select:focus,
@@ -113,12 +115,14 @@
   text-align: right;
 }
 
+.summaryStats {
+  margin-bottom: 24px;
+}
+
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
-  margin-bottom: 20px;
-  justify-items: center;
 }
 
 .statCard {
@@ -126,31 +130,30 @@
   border-radius: 12px;
   padding: 20px;
   text-align: center;
-  width: 100%;
-  max-width: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.statCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .statValue {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: #333;
-  margin: 0;
+  word-break: break-word;
 }
 
 .statLabel {
   font-size: 14px;
   color: #888;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .statSub {
   font-size: 13px;
   color: #666;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .chartContainer {
@@ -225,6 +228,34 @@
   margin-top: 4px;
 }
 
+.reportActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exportButton {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s;
+  background: #667eea;
+  color: white;
+}
+
+.exportButton:hover {
+  background: #5a6fd6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.exportButton:active {
+  transform: translateY(0);
+}
+
 .tableWrapper {
   overflow-x: auto;
   margin-bottom: 16px;
@@ -257,6 +288,10 @@
 
 .table tbody tr:hover {
   background: #fafafa;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .emptyTable {
@@ -339,6 +374,16 @@
   .chartBarWrapper {
     height: 160px;
   }
+  .statValue {
+    font-size: 20px;
+  }
+  .reportActions {
+    width: 100%;
+  }
+  .exportButton {
+    flex: 1;
+    text-align: center;
+  }
 }
 
 @media (max-width: 480px) {
@@ -352,9 +397,6 @@
   .statGrid {
     grid-template-columns: 1fr;
   }
-  .statValue {
-    font-size: 20px;
-  }
   .report {
     padding: 12px;
   }
@@ -367,5 +409,21 @@
   .table th,
   .table td {
     padding: 6px 8px;
+  }
+  .chartBars {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+  .chartBarWrapper {
+    flex: 0 0 calc(20% - 4px);
+    height: 120px;
+  }
+  .chartBarTrack {
+    height: 80px;
+  }
+  .exportButton {
+    font-size: 12px;
+    padding: 5px 10px;
   }
 }

@@ -59,13 +59,66 @@ export const useReports = () => {
       );
       
       setReportData(response.data);
-      setMessage('✔️ Отчет успешно сгенерирован!');
+      setMessage('Отчет успешно сгенерирован');
       return response.data;
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Ошибка генерации отчета';
       setError(errorMsg);
-      setMessage('❌ ' + errorMsg);
+      setMessage('Ошибка генерации отчета');
       console.error('Error generating report:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const exportReport = useCallback(async (category, reportType, startDate, endDate, format) => {
+    setLoading(true);
+    setError(null);
+    setMessage('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const start = startDate + 'T00:00:00';
+      const end = endDate + 'T23:59:59';
+      
+      const reportTypeFull = category + '-' + reportType;
+      
+      const response = await axios.get(
+        `${API_URL}/reports/export/${reportTypeFull}/${format}`,
+        {
+          params: { start, end },
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Accept': 'application/octet-stream'
+          },
+          responseType: 'blob'
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `report.${format}`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match) filename = match[1];
+      }
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setMessage(`Отчет экспортирован в ${format.toUpperCase()}`);
+      return true;
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Ошибка экспорта отчета';
+      setError(errorMsg);
+      setMessage('Ошибка экспорта отчета');
+      console.error('Error exporting report:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -85,6 +138,7 @@ export const useReports = () => {
     message,
     setMessage,
     generateReport,
+    exportReport,
     clearReport
   };
 };

@@ -9,6 +9,7 @@ function ReportsPage() {
     message,
     setMessage,
     generateReport,
+    exportReport,
     clearReport
   } = useReports();
 
@@ -27,13 +28,13 @@ function ReportsPage() {
     tickets: {
       label: 'Билеты',
       types: {
-        summary: { 
-          label: 'Общая статистика', 
+        summary: {
+          label: 'Общая статистика',
           endpoint: '/reports/tickets/summary',
           isSummary: true
         },
-        movies: { 
-          label: 'По фильмам', 
+        movies: {
+          label: 'По фильмам',
           endpoint: '/reports/tickets/movies',
           dataKey: 'movieStats',
           columns: [
@@ -43,8 +44,8 @@ function ReportsPage() {
             { key: 'totalRevenue', label: 'Выручка', format: 'currency' }
           ]
         },
-        halls: { 
-          label: 'По залам', 
+        halls: {
+          label: 'По залам',
           endpoint: '/reports/tickets/halls',
           dataKey: 'hallStats',
           columns: [
@@ -56,8 +57,8 @@ function ReportsPage() {
             { key: 'occupancyPercent', label: 'Заполняемость %', format: 'percent' }
           ]
         },
-        daily: { 
-          label: 'По дням', 
+        daily: {
+          label: 'По дням',
           endpoint: '/reports/tickets/daily',
           dataKey: 'dailyStats',
           columns: [
@@ -72,13 +73,13 @@ function ReportsPage() {
     products: {
       label: 'Товары',
       types: {
-        summary: { 
-          label: 'Общая статистика', 
+        summary: {
+          label: 'Общая статистика',
           endpoint: '/reports/products/summary',
           isSummary: true
         },
-        list: { 
-          label: 'По товарам', 
+        list: {
+          label: 'По товарам',
           endpoint: '/reports/products/list',
           dataKey: 'productStats',
           columns: [
@@ -87,8 +88,8 @@ function ReportsPage() {
             { key: 'totalRevenue', label: 'Выручка', format: 'currency' }
           ]
         },
-        daily: { 
-          label: 'По дням', 
+        daily: {
+          label: 'По дням',
           endpoint: '/reports/products/daily',
           dataKey: 'dailyStats',
           columns: [
@@ -140,7 +141,7 @@ function ReportsPage() {
   const renderSummaryReport = (data) => {
     const stats = data.data;
     const isTickets = category === 'tickets';
-    
+
     return (
       <div className={styles.summaryStats}>
         <div className={styles.statGrid}>
@@ -188,7 +189,7 @@ function ReportsPage() {
   const renderTableReport = (data, columns) => {
     const config = reportConfig[category].types[reportType];
     const items = data.data[config.dataKey];
-    
+
     if (!items || items.length === 0) {
       return <div className={styles.emptyTable}>Нет данных за выбранный период</div>;
     }
@@ -224,7 +225,7 @@ function ReportsPage() {
 
     return charts.map((chart, index) => {
       const maxValue = Math.max(...chart.values.map(v => Number(v)), 1);
-      
+
       return (
         <div key={index} className={styles.chartContainer}>
           <h3>{chart.title}</h3>
@@ -233,22 +234,22 @@ function ReportsPage() {
               {chart.labels.map((label, i) => {
                 const percentage = (Number(chart.values[i]) / maxValue) * 100;
                 const color = `hsl(${(i * 360) / chart.labels.length}, 70%, 50%)`;
-                
+
                 return (
                   <div key={i} className={styles.chartBarWrapper}>
                     <div className={styles.chartBarLabel}>{label}</div>
                     <div className={styles.chartBarTrack}>
-                      <div 
+                      <div
                         className={styles.chartBarFill}
-                        style={{ 
+                        style={{
                           height: `${Math.max(percentage, 5)}%`,
                           backgroundColor: color
                         }}
                       />
                     </div>
                     <div className={styles.chartBarValue}>
-                      {typeof chart.values[i] === 'number' && chart.values[i] > 1000 
-                        ? formatPrice(chart.values[i]) 
+                      {typeof chart.values[i] === 'number' && chart.values[i] > 1000
+                        ? formatPrice(chart.values[i])
                         : chart.values[i]}
                     </div>
                   </div>
@@ -273,6 +274,17 @@ function ReportsPage() {
           <h2>{reportName}</h2>
           <div className={styles.reportPeriod}>
             {formatDate(startDate)} — {formatDate(endDate)}
+          </div>
+          <div className={styles.reportActions}>
+            <button onClick={() => exportReport(category, reportType, startDate, endDate, 'csv')} className={styles.exportButton}>
+              CSV
+            </button>
+            <button onClick={() => exportReport(category, reportType, startDate, endDate, 'json')} className={styles.exportButton}>
+              JSON
+            </button>
+            <button onClick={() => exportReport(category, reportType, startDate, endDate, 'pdf')} className={styles.exportButton}>
+              PDF
+            </button>
           </div>
         </div>
 
@@ -309,7 +321,7 @@ function ReportsPage() {
       <h1 className={styles.title}>Отчеты и аналитика</h1>
 
       {message && (
-        <div className={`${styles.message} ${message.includes('✔️') ? styles.success : styles.error}`}>
+        <div className={`${styles.message} ${message.includes('Ошибка') ? styles.error : styles.success}`}>
           {message}
           <button className={styles.closeMessage} onClick={() => setMessage('')}>×</button>
         </div>
@@ -318,8 +330,8 @@ function ReportsPage() {
       <div className={styles.controls}>
         <div className={styles.controlGroup}>
           <label className={styles.label}>Категория</label>
-          <select 
-            value={category} 
+          <select
+            value={category}
             onChange={handleCategoryChange}
             className={styles.select}
           >
@@ -330,8 +342,8 @@ function ReportsPage() {
 
         <div className={styles.controlGroup}>
           <label className={styles.label}>Тип отчета</label>
-          <select 
-            value={reportType} 
+          <select
+            value={reportType}
             onChange={handleTypeChange}
             className={styles.select}
           >
@@ -343,9 +355,9 @@ function ReportsPage() {
 
         <div className={styles.controlGroup}>
           <label className={styles.label}>С</label>
-          <input 
-            type="date" 
-            value={startDate} 
+          <input
+            type="date"
+            value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className={styles.input}
           />
@@ -353,16 +365,16 @@ function ReportsPage() {
 
         <div className={styles.controlGroup}>
           <label className={styles.label}>По</label>
-          <input 
-            type="date" 
-            value={endDate} 
+          <input
+            type="date"
+            value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className={styles.input}
           />
         </div>
 
-        <button 
-          onClick={handleGenerate} 
+        <button
+          onClick={handleGenerate}
           className={styles.generateButton}
           disabled={loading}
         >
