@@ -1,6 +1,8 @@
 package com.cinema.controller;
 
+import com.cinema.dto.EmailReportRequest;
 import com.cinema.dto.ReportDTO;
+import com.cinema.service.EmailService;
 import com.cinema.service.ExportService;
 import com.cinema.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -22,6 +26,9 @@ public class ReportController {
 
     @Autowired
     private ExportService exportService;
+
+    @Autowired
+    private EmailService emailService;
 
     @GetMapping("/tickets/summary")
     public ResponseEntity<ReportDTO> getTicketSummary(
@@ -142,6 +149,67 @@ public class ReportController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/send-email")
+    public ResponseEntity<Map<String, String>> sendReportByEmail(@RequestBody EmailReportRequest request) {
+        try {
+            ReportDTO report = getReportByType(request.getReportType(), request.getStartDate(), request.getEndDate());
+            
+            byte[] content;
+            String fileName;
+            String contentType;
+            
+            switch (request.getFormat().toLowerCase()) {
+                case "csv":
+                    content = exportService.exportCSV(report);
+                    fileName = request.getReportType() + "_" + 
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
+                    contentType = "text/csv";
+                    break;
+                case "json":
+                    content = exportService.exportJSON(report);
+                    fileName = request.getReportType() + "_" + 
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
+                    contentType = "application/json";
+                    break;
+                case "pdf":
+                    content = exportService.exportPDF(report);
+                    fileName = request.getReportType() + "_" + 
+                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+                    contentType = "application/pdf";
+                    break;
+                default:
+                    return ResponseEntity.badRequest().body(Map.of("error", "Неизвестный формат: " + request.getFormat()));
+            }
+
+            String period = request.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) + 
+                " - " + request.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+
+            emailService.sendReportEmail(
+                request.getToEmail(),
+                request.getSubject(),
+                request.getMessage(),
+                fileName,
+                content,
+                contentType,
+                report.getReportName(),
+                period
+            );
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "✔️ Отчет успешно отправлен на " + request.getToEmail());
+            response.put("status", "success");
+            
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "❌ Ошибка отправки: " + e.getMessage());
+            response.put("status", "error");
+            return ResponseEntity.internalServerError().body(response);
         }
     }
 }

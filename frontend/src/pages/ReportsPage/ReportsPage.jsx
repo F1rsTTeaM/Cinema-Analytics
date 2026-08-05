@@ -10,6 +10,7 @@ function ReportsPage() {
     setMessage,
     generateReport,
     exportReport,
+    sendReportEmail,
     clearReport
   } = useReports();
 
@@ -23,6 +24,13 @@ function ReportsPage() {
   const [endDate, setEndDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
+
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailFormat, setEmailFormat] = useState('pdf');
+  const [sending, setSending] = useState(false);
 
   const reportConfig = {
     tickets: {
@@ -285,6 +293,12 @@ function ReportsPage() {
             <button onClick={() => exportReport(category, reportType, startDate, endDate, 'pdf')} className={styles.exportButton}>
               PDF
             </button>
+            <button
+              onClick={() => setShowEmailForm(true)}
+              className={`${styles.exportButton} ${styles.emailButton}`}
+            >
+              Отправить
+            </button>
           </div>
         </div>
 
@@ -314,6 +328,42 @@ function ReportsPage() {
   const handleTypeChange = (e) => {
     setReportType(e.target.value);
     clearReport();
+  };
+
+  const handleSendEmail = async () => {
+    if (!email) {
+      setMessage('Пожалуйста, укажите email');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMessage('Введите корректный email');
+      return;
+    }
+
+    setSending(true);
+    setMessage('');
+
+    try {
+      const reportTypeFull = category + '-' + reportType;
+      await sendReportEmail(
+        email,
+        reportTypeFull,
+        emailFormat,
+        startDate,
+        endDate,
+        emailSubject || `Отчет: ${reportConfig[category].types[reportType].label}`,
+        emailMessage || ''
+      );
+      setShowEmailForm(false);
+      setEmail('');
+      setEmailSubject('');
+      setEmailMessage('');
+    } catch (error) {
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -383,6 +433,82 @@ function ReportsPage() {
       </div>
 
       {renderReport()}
+
+      {showEmailForm && (
+        <div className={styles.overlay}>
+          <div className={styles.modal}>
+            <h2 className={styles.modalTitle}>Отправить отчет на почту</h2>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Email получателя</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="example@mail.com"
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Тема письма</label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Тема письма"
+                className={styles.input}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Сообщение</label>
+              <textarea
+                value={emailMessage}
+                onChange={(e) => setEmailMessage(e.target.value)}
+                placeholder="Дополнительное сообщение..."
+                className={styles.textarea}
+                rows={3}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Формат файла</label>
+              <select
+                value={emailFormat}
+                onChange={(e) => setEmailFormat(e.target.value)}
+                className={styles.select}
+              >
+                <option value="pdf">PDF</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                onClick={handleSendEmail}
+                className={styles.submitButton}
+                disabled={sending || !email}
+              >
+                {sending ? 'Отправка...' : 'Отправить'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowEmailForm(false);
+                  setEmail('');
+                  setEmailSubject('');
+                  setEmailMessage('');
+                }}
+                className={styles.cancelButton}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

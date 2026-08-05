@@ -131,6 +131,50 @@ export const useReports = () => {
     setMessage('');
   }, []);
 
+  const sendReportEmail = useCallback(async (toEmail, reportType, format, startDate, endDate, subject, message) => {
+    setLoading(true);
+    setError(null);
+    setMessage('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const start = startDate + 'T00:00:00';
+      const end = endDate + 'T23:59:59';
+      
+      const requestData = {
+        toEmail,
+        reportType,
+        format,
+        startDate: start,
+        endDate: end,
+        subject,
+        message
+      };
+
+      const response = await axios.post(
+        `${API_URL}/reports/send-email`,
+        requestData,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      setMessage(response.data.message || 'Отчет успешно отправлен');
+      return response.data;
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Ошибка отправки отчета';
+      setError(errorMsg);
+      setMessage('Ошибка отправки: ' + errorMsg);
+      console.error('Error sending report:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     reportData,
     loading,
@@ -139,6 +183,7 @@ export const useReports = () => {
     setMessage,
     generateReport,
     exportReport,
+    sendReportEmail,
     clearReport
   };
 };
