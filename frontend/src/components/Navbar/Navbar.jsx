@@ -62,15 +62,6 @@ function Navbar({ user, onLogout }) {
           </button>
         )}
 
-        {isAdmin && (
-          <button 
-            onClick={() => navigate('/admin-dashboard')} 
-            className={`${styles.navButton} ${styles.adminButton}`}
-          >
-            Админ
-          </button>
-        )}
-
         <span className={styles.userInfo}>
           {user.username} ({user.role === 'ROLE_ADMIN' ? 'Админ' : 'Пользователь'})
         </span>

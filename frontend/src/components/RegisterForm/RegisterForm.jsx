@@ -87,8 +87,8 @@ function RegisterForm({ onSubmit, onSwitch, loading, errors }) {
           </div>
           <div className={styles.roleHint}>
             {role === 'USER' 
-              ? 'Вам будет доступна только страница пользователя' 
-              : 'Вам будут доступны обе страницы'}
+              ? 'Вам будет доступен ограниченный функционал' 
+              : 'Вам будет доступен полный функционал'}
           </div>
         </div>
 
