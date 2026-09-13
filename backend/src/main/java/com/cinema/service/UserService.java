@@ -3,12 +3,18 @@ package com.cinema.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.cinema.exception.UserExceptions;
 import com.cinema.model.Role;
 import com.cinema.model.User;
 import com.cinema.repository.UserRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Transactional 
+@Slf4j 
 public class UserService {
     @Autowired
     private UserRepository userRepository;
@@ -17,11 +23,17 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     public User registerUser(String username, String email, String password, String role) {
+        log.debug("Регистрация пользователя: username='{}', email='{}', role='{}'",
+                username, email, role);
+
         if (userRepository.existsByUsername(username)) {
-            throw new RuntimeException("Пользователь уже существует");
+            log.warn("Попытка регистрации с уже существующим username: '{}'", username);
+            throw new UserExceptions.DuplicateUsername(username);
         }
+
         if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email уже используется");
+            log.warn("Попытка регистрации с уже используемым email: '{}'", email);
+            throw new UserExceptions.DuplicateEmail(email);
         }
 
         User user = new User();
@@ -35,11 +47,20 @@ public class UserService {
             user.setRole(Role.ROLE_USER);
         }
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        log.info("Пользователь '{}' успешно зарегистрирован с id={} и ролью {}",
+                saved.getUsername(), saved.getId(), saved.getRole());
+        
+                return saved;
     }
 
     public User findByUsername(String username) {
+        log.debug("Поиск пользователя по username='{}'", username);
+        
         return userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> {
+                    log.warn("Пользователь '{}' не найден", username);
+                    return new UserExceptions.NotFound(username);
+                });
     }
 }

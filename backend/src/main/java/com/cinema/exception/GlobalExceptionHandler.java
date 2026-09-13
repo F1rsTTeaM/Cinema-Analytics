@@ -1,7 +1,12 @@
 package com.cinema.exception;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -18,15 +23,17 @@ public class GlobalExceptionHandler {
                 getClass().getPackageName());
     }
 
+    // ---------- Movie ----------
+
     @ExceptionHandler(MovieExceptions.NotFound.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(MovieExceptions.NotFound ex) {
+    public ResponseEntity<ErrorResponse> handleMovieNotFound(MovieExceptions.NotFound ex) {
         log.warn("404: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(MovieExceptions.NotFoundByTitle.class)
-    public ResponseEntity<ErrorResponse> handleNotFoundByTitle(MovieExceptions.NotFoundByTitle ex) {
+    public ResponseEntity<ErrorResponse> handleMovieNotFoundByTitle(MovieExceptions.NotFoundByTitle ex) {
         log.warn("404: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(ex.getMessage()));
@@ -40,7 +47,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MovieExceptions.InvalidData.class)
-    public ResponseEntity<ErrorResponse> handleInvalidData(MovieExceptions.InvalidData ex) {
+    public ResponseEntity<ErrorResponse> handleMovieInvalidData(MovieExceptions.InvalidData ex) {
         log.warn("400: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(ex.getMessage()));
@@ -52,6 +59,59 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse(ex.getMessage()));
     }
+
+    // ---------- User ----------
+
+    @ExceptionHandler(UserExceptions.DuplicateUsername.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateUsername(UserExceptions.DuplicateUsername ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserExceptions.DuplicateEmail.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmail(UserExceptions.DuplicateEmail ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserExceptions.NotFound.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserExceptions.NotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserExceptions.InvalidCredentials.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(UserExceptions.InvalidCredentials ex) {
+        log.warn("401: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserExceptions.InvalidRole.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRole(UserExceptions.InvalidRole ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    // ---------- Validation ----------
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String field = ((FieldError) error).getField();
+            String message = error.getDefaultMessage();
+            errors.put(field, message);
+        });
+        log.warn("400: ошибки валидации: {}", errors);
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    // ---------- Fallback ----------
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleOther(Exception ex) {
