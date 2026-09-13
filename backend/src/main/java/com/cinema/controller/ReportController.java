@@ -5,6 +5,9 @@ import com.cinema.dto.ReportDTO;
 import com.cinema.service.EmailService;
 import com.cinema.service.ExportService;
 import com.cinema.service.ReportService;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +22,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
+@Slf4j
 public class ReportController {
 
     @Autowired
@@ -34,51 +38,78 @@ public class ReportController {
     public ResponseEntity<ReportDTO> getTicketSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getTicketSummaryReport(start, end));
+        log.info("GET /api/reports/tickets/summary - период: {} - {}", start, end);
+        ReportDTO report = reportService.getTicketSummaryReport(start, end);
+        log.info("GET /api/reports/tickets/summary - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/tickets/movies")
     public ResponseEntity<ReportDTO> getTicketMovies(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getMovieReport(start, end));
+        log.info("GET /api/reports/tickets/movies - период: {} - {}", start, end);
+        ReportDTO report = reportService.getMovieReport(start, end);
+        log.info("GET /api/reports/tickets/movies - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/tickets/halls")
     public ResponseEntity<ReportDTO> getTicketHalls(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getHallReport(start, end));
+        log.info("GET /api/reports/tickets/halls - период: {} - {}", start, end);
+        ReportDTO report = reportService.getHallReport(start, end);
+        log.info("GET /api/reports/tickets/halls - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/tickets/daily")
     public ResponseEntity<ReportDTO> getTicketDaily(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getDailyReport(start, end));
+        log.info("GET /api/reports/tickets/daily - период: {} - {}", start, end);
+        ReportDTO report = reportService.getDailyReport(start, end);
+        log.info("GET /api/reports/tickets/daily - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/products/summary")
     public ResponseEntity<ReportDTO> getProductSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getProductSummaryReport(start, end));
+        log.info("GET /api/reports/products/summary - период: {} - {}", start, end);
+        ReportDTO report = reportService.getProductSummaryReport(start, end);
+        log.info("GET /api/reports/tickets/summary - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/products/list")
     public ResponseEntity<ReportDTO> getProductList(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getProductListReport(start, end));
+        log.info("GET /api/reports/products/list - период: {} - {}", start, end);
+        ReportDTO report = reportService.getProductListReport(start, end);
+        log.info("GET /api/reports/tickets/list - отчёт сформирован");
+
+        return ResponseEntity.ok(report);
     }
 
     @GetMapping("/products/daily")
     public ResponseEntity<ReportDTO> getProductDaily(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        return ResponseEntity.ok(reportService.getProductDailyReport(start, end));
-    }
+        log.info("GET /api/reports/products/daily - период: {} - {}", start, end);
+        ReportDTO report = reportService.getProductDailyReport(start, end);
+        log.info("GET /api/reports/tickets/daily - отчёт сформирован");
 
+        return ResponseEntity.ok(report);
+    }
 
     private ReportDTO getReportByType(String reportType, LocalDateTime start, LocalDateTime end) {
         switch (reportType) {
@@ -107,45 +138,50 @@ public class ReportController {
             @PathVariable String format,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        
+
+        log.info("GET /api/reports/export/{}/{} - период: {} - {}",
+                reportType, format, start, end);
         try {
             ReportDTO report = getReportByType(reportType, start, end);
             byte[] content;
-            String fileName = reportType + "_" + 
+            String fileName = reportType + "_" +
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
             MediaType mediaType;
-            
+
             switch (format.toLowerCase()) {
                 case "csv":
                     content = exportService.exportCSV(report);
                     fileName += ".csv";
                     mediaType = MediaType.parseMediaType("text/csv");
                     break;
-                    
+
                 case "json":
                     content = exportService.exportJSON(report);
                     fileName += ".json";
                     mediaType = MediaType.APPLICATION_JSON;
                     break;
-                    
+
                 case "pdf":
                     content = exportService.exportPDF(report);
                     fileName += ".pdf";
                     mediaType = MediaType.APPLICATION_PDF;
                     break;
-                    
+
                 default:
                     return ResponseEntity.badRequest().build();
             }
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(mediaType);
             headers.setContentDispositionFormData("attachment", fileName);
-            
+
+            log.info("Экспорт отчёта: reportType={}, format={}, fileName={}, size={} байт",
+                    reportType, format, fileName, content.length);
+
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(content);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
@@ -154,54 +190,59 @@ public class ReportController {
 
     @PostMapping("/send-email")
     public ResponseEntity<Map<String, String>> sendReportByEmail(@RequestBody EmailReportRequest request) {
+        log.info("POST /api/reports/send-email - reportType={}, format={}, to='{}'",
+                request.getReportType(), request.getFormat(), request.getToEmail());
+
         try {
             ReportDTO report = getReportByType(request.getReportType(), request.getStartDate(), request.getEndDate());
-            
+
             byte[] content;
             String fileName;
             String contentType;
-            
+
             switch (request.getFormat().toLowerCase()) {
                 case "csv":
                     content = exportService.exportCSV(report);
-                    fileName = request.getReportType() + "_" + 
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
+                    fileName = request.getReportType() + "_" +
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
                     contentType = "text/csv";
                     break;
                 case "json":
                     content = exportService.exportJSON(report);
-                    fileName = request.getReportType() + "_" + 
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
+                    fileName = request.getReportType() + "_" +
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
                     contentType = "application/json";
                     break;
                 case "pdf":
                     content = exportService.exportPDF(report);
-                    fileName = request.getReportType() + "_" + 
-                        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+                    fileName = request.getReportType() + "_" +
+                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
                     contentType = "application/pdf";
                     break;
                 default:
-                    return ResponseEntity.badRequest().body(Map.of("error", "Неизвестный формат: " + request.getFormat()));
+                    return ResponseEntity.badRequest()
+                            .body(Map.of("error", "Неизвестный формат: " + request.getFormat()));
             }
 
-            String period = request.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) + 
-                " - " + request.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+            String period = request.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) +
+                    " - " + request.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
             emailService.sendReportEmail(
-                request.getToEmail(),
-                request.getSubject(),
-                request.getMessage(),
-                fileName,
-                content,
-                contentType,
-                report.getReportName(),
-                period
-            );
+                    request.getToEmail(),
+                    request.getSubject(),
+                    request.getMessage(),
+                    fileName,
+                    content,
+                    contentType,
+                    report.getReportName(),
+                    period);
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "✔️ Отчет успешно отправлен на " + request.getToEmail());
             response.put("status", "success");
-            
+
+            log.info("Отчёт успешно отправлен на '{}' (файл: {})", request.getToEmail(), fileName);
+
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
@@ -209,6 +250,7 @@ public class ReportController {
             Map<String, String> response = new HashMap<>();
             response.put("message", "❌ Ошибка отправки: " + e.getMessage());
             response.put("status", "error");
+            log.error("Ошибка отправки отчёта на '{}'", request.getToEmail());
             return ResponseEntity.internalServerError().body(response);
         }
     }

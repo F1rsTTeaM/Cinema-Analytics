@@ -1,20 +1,28 @@
 package com.cinema.service;
 
 import com.cinema.dto.ReportDTO;
+import com.cinema.exception.ReportExceptions;
 import com.cinema.model.Session;
 import com.cinema.model.ProductSale;
 import com.cinema.repository.SessionRepository;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.cinema.repository.ProductSaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j 
 public class ReportService {
+
+    private static final long MAX_PERIOD_DAYS = 366;
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -23,8 +31,13 @@ public class ReportService {
     private ProductSaleRepository productSaleRepository;
 
     public ReportDTO getTicketSummaryReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта TICKET_SUMMARY за период {} - {}", start, end);
+        
         List<Session> sessions = sessionRepository.findCompletedSessionsInPeriod(start, end);
         
+        log.debug("Найдено {} завершённых сеансов", sessions.size());
+
         Map<String, Object> data = new HashMap<>();
         
         BigDecimal totalRevenue = sessions.stream()
@@ -99,12 +112,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт TICKET_SUMMARY сформирован");
+
         return report;
     }
 
     public ReportDTO getMovieReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта MOVIE за период {} - {}", start, end);
+        
         List<Session> sessions = sessionRepository.findCompletedSessionsInPeriod(start, end);
         
+        log.debug("Найдено {} завершённых сеансов", sessions.size());
+
         Map<String, Map<String, Object>> movieMap = new LinkedHashMap<>();
         
         for (Session s : sessions) {
@@ -151,12 +171,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт MOVIE сформирован");
+
         return report;
     }
 
     public ReportDTO getHallReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта HALL за период {} - {}", start, end);
+        
         List<Session> sessions = sessionRepository.findCompletedSessionsInPeriod(start, end);
         
+        log.debug("Найдено {} завершённых сеансов", sessions.size());
+
         Map<String, Map<String, Object>> hallMap = new LinkedHashMap<>();
         
         for (Session s : sessions) {
@@ -204,12 +231,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт HALL сформирован");
+
         return report;
     }
 
     public ReportDTO getDailyReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта DAILY за период {} - {}", start, end);
+        
         List<Session> sessions = sessionRepository.findCompletedSessionsInPeriod(start, end);
         
+        log.debug("Найдено {} завершённых сеансов", sessions.size());
+
         Map<String, Map<String, Object>> dailyMap = new LinkedHashMap<>();
         
         for (Session s : sessions) {
@@ -259,12 +293,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart1, chart2));
 
+        log.info("Отчёт DAILY сформирован");
+
         return report;
     }
 
     public ReportDTO getProductSummaryReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта PRODUCT_SUMMARY за период {} - {}", start, end);
+        
         List<ProductSale> sales = productSaleRepository.findBySaleDateBetween(start, end);
         
+        log.debug("Найдено {} продаж товаров", sales.size());
+
         Map<String, Object> data = new HashMap<>();
         
         BigDecimal totalRevenue = sales.stream()
@@ -325,12 +366,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт PRODUCT_SUMMARY сформирован");
+
         return report;
     }
 
     public ReportDTO getProductListReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта PRODUCT_LIST за период {} - {}", start, end);
+        
         List<ProductSale> sales = productSaleRepository.findBySaleDateBetween(start, end);
         
+        log.debug("Найдено {} продаж товаров", sales.size());
+
         Map<String, Map<String, Object>> productMap = new LinkedHashMap<>();
         
         for (ProductSale ps : sales) {
@@ -375,12 +423,19 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт PRODUCT_LIST сформирован");
+
         return report;
     }
 
     public ReportDTO getProductDailyReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта PRODUCT_DAILY за период {} - {}", start, end);
+        
         List<ProductSale> sales = productSaleRepository.findBySaleDateBetween(start, end);
         
+        log.debug("Найдено {} продаж товаров", sales.size());
+
         Map<String, Map<String, Object>> dailyMap = new LinkedHashMap<>();
         
         for (ProductSale ps : sales) {
@@ -429,6 +484,25 @@ public class ReportService {
         report.setData(data);
         report.setCharts(List.of(chart1, chart2));
 
+        log.info("Отчёт PRODUCT_DAILY сформирован");
+
         return report;
+    }
+
+    private void validatePeriod(LocalDateTime start, LocalDateTime end) {
+        if (start == null || end == null) {
+            log.warn("Некорректный период: start={}, end={}", start, end);
+            throw new ReportExceptions.InvalidPeriod("Дата начала и конца периода обязательны");
+        }
+        if (start.isAfter(end)) {
+            log.warn("Некорректный период: start={} позже end={}", start, end);
+            throw new ReportExceptions.InvalidPeriod(
+                    "Дата начала (" + start + ") не может быть позже даты конца (" + end + ")");
+        }
+        long days = Duration.between(start, end).toDays();
+        if (days > MAX_PERIOD_DAYS) {
+            log.warn("Период отчёта слишком большой: {} дней (макс {})", days, MAX_PERIOD_DAYS);
+            throw new ReportExceptions.PeriodTooLong(days, MAX_PERIOD_DAYS);
+        }
     }
 }

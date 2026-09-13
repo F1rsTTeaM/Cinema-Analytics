@@ -180,6 +180,36 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
+    // ---------- Report ----------
+
+    @ExceptionHandler(ReportExceptions.UnknownReportType.class)
+    public ResponseEntity<ErrorResponse> handleUnknownReportType(ReportExceptions.UnknownReportType ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReportExceptions.UnknownFormat.class)
+    public ResponseEntity<ErrorResponse> handleUnknownFormat(ReportExceptions.UnknownFormat ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReportExceptions.InvalidPeriod.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPeriod(ReportExceptions.InvalidPeriod ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ReportExceptions.EmailSendFailed.class)
+    public ResponseEntity<ErrorResponse> handleEmailSendFailed(ReportExceptions.EmailSendFailed ex) {
+        log.error("500: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("Не удалось отправить отчёт: " + ex.getMessage()));
+    }
+
     // ---------- Validation ----------
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
