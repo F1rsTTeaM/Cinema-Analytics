@@ -4,6 +4,9 @@ import com.cinema.dto.ReportDTO;
 import com.cinema.dto.SessionCreateRequest;
 import com.cinema.dto.SessionDTO;
 import com.cinema.dto.SessionPurchaseRequest;
+import com.cinema.exception.HallExceptions;
+import com.cinema.exception.MovieExceptions;
+import com.cinema.exception.SessionExceptions;
 import com.cinema.model.Hall;
 import com.cinema.model.Movie;
 import com.cinema.model.Session;
@@ -11,11 +14,15 @@ import com.cinema.model.SessionStatus;
 import com.cinema.repository.HallRepository;
 import com.cinema.repository.MovieRepository;
 import com.cinema.repository.SessionRepository;
+
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +32,9 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class SessionService {
+    private static final long MIN_SESSION_DURATION_MINUTES = 30;
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -37,108 +46,167 @@ public class SessionService {
     private HallRepository hallRepository;
 
     public List<SessionDTO> getAllSessions() {
-        return sessionRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        log.debug("Получение списка всех сеансов");
+        List<Session> sessions = sessionRepository.findAll();
+        log.debug("Из БД получено {} сеансов", sessions.size());
+
+        return sessions.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public SessionDTO getSessionById(Long id) {
+        log.debug("Поиск сеанса по id={}", id);
         Session session = sessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Сеанс не найден"));
+                .orElseThrow(() -> {
+                    log.warn("Сеанс с id={} не найден", id);
+                    return new SessionExceptions.NotFound(id);
+                });
+        log.debug("Сеанс с id={} найден: фильм='{}', зал='{}'",
+                id, session.getMovie().getTitle(), session.getHall().getName());
+
         return convertToDTO(session);
     }
 
     public List<SessionDTO> getUpcomingSessions() {
-        return sessionRepository.findUpcomingSessions(LocalDateTime.now()).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        log.debug("Получение списка предстоящих сеансов");
+        List<Session> upcoming = sessionRepository.findUpcomingSessions(LocalDateTime.now());
+        log.debug("Найдено {} предстоящих сеансов", upcoming.size());
+
+        return upcoming.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public List<SessionDTO> getSessionsByMovie(Long movieId) {
-        return sessionRepository.findByMovieId(movieId).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        log.debug("Получение сеансов для фильма id={}", movieId);
+        List<Session> sessions = sessionRepository.findByMovieId(movieId);
+        log.debug("Для фильма id={} найдено {} сеансов", movieId, sessions.size());
+
+        return sessions.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public List<SessionDTO> getSessionsByHall(Long hallId) {
-        return sessionRepository.findByHallId(hallId).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        log.debug("Получение сеансов для зала id={}", hallId);
+        List<Session> sessions = sessionRepository.findByHallId(hallId);
+        log.debug("Для зала id={} найдено {} сеансов", hallId, sessions.size());
+
+        return sessions.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public SessionDTO createSession(SessionCreateRequest request) {
+        log.debug("Создание сеанса: movieId={}, hallId={}, {} - {}",
+                request.getMovieId(), request.getHallId(),
+                request.getStartTime(), request.getEndTime());
+
         Movie movie = movieRepository.findById(request.getMovieId())
-                .orElseThrow(() -> new RuntimeException("Фильм не найден"));
+                .orElseThrow(() -> {
+                    log.warn("Фильм id={} не найден при создании сеанса", request.getMovieId());
+                    return new MovieExceptions.NotFound(request.getMovieId());
+                });
 
         Hall hall = hallRepository.findById(request.getHallId())
-                .orElseThrow(() -> new RuntimeException("Зал не найден"));
+                .orElseThrow(() -> {
+                    log.warn("Зал id={} не найден при создании сеанса", request.getHallId());
+                    return new HallExceptions.NotFound(request.getHallId());
+                });
 
-        if (request.getEndTime().isBefore(request.getStartTime()) ||
-                request.getEndTime().equals(request.getStartTime())) {
-            throw new RuntimeException("Время окончания должно быть позже времени начала");
+        if (request.getEndTime().isBefore(request.getStartTime())
+                || request.getEndTime().equals(request.getStartTime())) {
+            log.warn("Некорректный диапазон времени сеанса: {} - {}",
+                    request.getStartTime(), request.getEndTime());
+            throw new SessionExceptions.InvalidTimeRange();
         }
 
-        long durationMinutes = java.time.Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();
-        if (durationMinutes < 30) {
-            throw new RuntimeException("Минимальная длительность сеанса — 30 минут");
+        long duration = Duration.between(request.getStartTime(), request.getEndTime()).toMinutes();
+        if (duration < MIN_SESSION_DURATION_MINUTES) {
+            log.warn("Слишком короткий сеанс: {} мин (мин. {})",
+                    duration, MIN_SESSION_DURATION_MINUTES);
+            throw new SessionExceptions.DurationTooShort(duration, MIN_SESSION_DURATION_MINUTES);
         }
 
         List<Session> overlapping = sessionRepository.findOverlappingSessions(
-                request.getHallId(),
-                request.getStartTime(),
-                request.getEndTime());
-
+                request.getHallId(), request.getStartTime(), request.getEndTime());
         if (!overlapping.isEmpty()) {
-            throw new RuntimeException("В этом зале уже есть сеанс в указанное время");
+            log.warn("Пересечение сеансов в зале id={} на {} - {}; конфликтов: {}",
+                    request.getHallId(), request.getStartTime(), request.getEndTime(),
+                    overlapping.size());
+            throw new SessionExceptions.TimeOverlap(request.getHallId());
         }
 
         Session session = new Session(
-                movie,
-                hall,
-                request.getStartTime(),
-                request.getEndTime(),
+                movie, hall,
+                request.getStartTime(), request.getEndTime(),
                 request.getTicketPrice());
 
         Session saved = sessionRepository.save(session);
+        log.info("Сеанс успешно создан: id={}, фильм='{}', зал='{}', {} - {}",
+                saved.getId(), movie.getTitle(), hall.getName(),
+                saved.getStartTime(), saved.getEndTime());
+
         return convertToDTO(saved);
     }
 
     public SessionDTO updateSessionStatus(Long id, String status) {
-        Session session = sessionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Сеанс не найден"));
+        log.debug("Обновление статуса сеанса id={} на '{}'", id, status);
 
+        Session session = sessionRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Сеанс с id={} не найден", id);
+                    return new SessionExceptions.NotFound(id);
+                });
+
+        SessionStatus newStatus;
         try {
-            SessionStatus newStatus = SessionStatus.valueOf(status.toUpperCase());
-            session.setStatus(newStatus);
+            newStatus = SessionStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Неверный статус: " + status);
+            log.warn("Некорректный статус сеанса: '{}'", status);
+            throw new SessionExceptions.InvalidStatus(status);
         }
 
-        return convertToDTO(sessionRepository.save(session));
+        SessionStatus oldStatus = session.getStatus();
+        session.setStatus(newStatus);
+        Session saved = sessionRepository.save(session);
+
+        log.info("Статус сеанса id={} изменён: {} -> {}", id, oldStatus, newStatus);
+
+        return convertToDTO(saved);
     }
 
     public void deleteSession(Long id) {
+        log.debug("Удаление сеанса id={}", id);
         if (!sessionRepository.existsById(id)) {
-            throw new RuntimeException("Сеанс не найден");
+            log.warn("Невозможно удалить: сеанс id={} не найден", id);
+            throw new SessionExceptions.NotFound(id);
         }
         sessionRepository.deleteById(id);
+        log.info("Сеанс id={} успешно удалён", id);
     }
 
     public SessionDTO purchaseTickets(SessionPurchaseRequest request) {
-        Session session = sessionRepository.findById(request.getSessionId())
-                .orElseThrow(() -> new RuntimeException("Сеанс не найден"));
+        log.debug("Покупка билетов: sessionId={}, места={}",
+                request.getSessionId(), request.getSeats());
 
-        if (session.getStatus() == SessionStatus.CANCELLED) {
-            throw new RuntimeException("Сеанс отменён");
+        if (request.getSeats() == null || request.getSeats().isEmpty()) {
+            log.warn("Не выбрано ни одного места для покупки");
+            throw new SessionExceptions.NoSeatsSelected();
         }
 
+        Session session = sessionRepository.findById(request.getSessionId())
+                .orElseThrow(() -> {
+                    log.warn("Сеанс id={} не найден", request.getSessionId());
+                    return new SessionExceptions.NotFound(request.getSessionId());
+                });
+
+        if (session.getStatus() == SessionStatus.CANCELLED) {
+            log.warn("Покупка на отменённый сеанс id={}", session.getId());
+            throw new SessionExceptions.Cancelled(session.getId());
+        }
         if (session.getStatus() == SessionStatus.COMPLETED) {
-            throw new RuntimeException("Сеанс уже завершён");
+            log.warn("Покупка на завершённый сеанс id={}", session.getId());
+            throw new SessionExceptions.Completed(session.getId());
         }
 
         for (String seat : request.getSeats()) {
             if (!session.isSeatAvailable(seat)) {
-                throw new RuntimeException("Место " + seat + " уже занято");
+                log.warn("Место '{}' уже занято на сеансе id={}", seat, session.getId());
+                throw new SessionExceptions.SeatOccupied(seat);
             }
         }
 
@@ -148,30 +216,58 @@ public class SessionService {
 
         if (session.getSoldCount() >= session.getHall().getCapacity()) {
             session.setStatus(SessionStatus.SOLD_OUT);
+            log.info("Сеанс id={} полностью распродан", session.getId());
         }
 
         Session saved = sessionRepository.save(session);
+        log.info("Билеты проданы: sessionId={}, места={}, всего продано={}",
+                saved.getId(), request.getSeats(), saved.getSoldCount());
+
         return convertToDTO(saved);
     }
 
     public List<String> getOccupiedSeats(Long sessionId) {
+        log.debug("Получение занятых мест для сеанса id={}", sessionId);
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Сеанс не найден"));
-        return session.getSoldSeats();
+                .orElseThrow(() -> {
+                    log.warn("Сеанс id={} не найден", sessionId);
+                    return new SessionExceptions.NotFound(sessionId);
+                });
+        List<String> occupied = session.getSoldSeats();
+        log.debug("Сеанс id={}: занято {} мест", sessionId, occupied.size());
+
+        return occupied;
     }
 
     public List<String> getAvailableSeats(Long sessionId) {
+        log.debug("Получение свободных мест для сеанса id={}", sessionId);
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Сеанс не найден"));
-        return session.getAvailableSeats();
+                .orElseThrow(() -> {
+                    log.warn("Сеанс id={} не найден", sessionId);
+                    return new SessionExceptions.NotFound(sessionId);
+                });
+        List<String> available = session.getAvailableSeats();
+        log.debug("Сеанс id={}: свободно {} мест", sessionId, available.size());
+
+        return available;
     }
 
     public BigDecimal getTotalRevenue(LocalDateTime start, LocalDateTime end) {
-        return sessionRepository.getTotalRevenue(start, end);
+        validatePeriod(start, end);
+        log.debug("Расчёт выручки за период {} - {}", start, end);
+        BigDecimal revenue = sessionRepository.getTotalRevenue(start, end);
+        log.info("Выручка за период {} - {}: {}", start, end, revenue);
+
+        return revenue;
     }
 
     public ReportDTO getMovieReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта MOVIE_REPORT за период {} - {}", start, end);
+
         List<Object[]> stats = sessionRepository.getMovieStats(start, end);
+
+        log.debug("Получено {} строк статистики по фильмам", stats.size());
 
         Map<String, Object> data = new HashMap<>();
         List<Map<String, Object>> movieStats = new ArrayList<>();
@@ -221,11 +317,18 @@ public class SessionService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт MOVIE_REPORT сформирован");
+
         return report;
     }
 
     public ReportDTO getHallReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта HALL_REPORT за период {} - {}", start, end);
+
         List<Object[]> stats = sessionRepository.getHallStats(start, end);
+
+        log.debug("Получено {} строк статистики по залам", stats.size());
 
         Map<String, Object> data = new HashMap<>();
         List<Map<String, Object>> hallStats = new ArrayList<>();
@@ -273,11 +376,18 @@ public class SessionService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт HALL_REPORT сформирован");
+
         return report;
     }
 
     public ReportDTO getDailyReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта DAILY_REPORT за период {} - {}", start, end);
+
         List<Object[]> stats = sessionRepository.getDailyTrends(start, end);
+
+        log.debug("Получено {} строк статистики", stats.size());
 
         Map<String, Object> data = new HashMap<>();
         List<Map<String, Object>> dailyStats = new ArrayList<>();
@@ -333,10 +443,15 @@ public class SessionService {
         report.setData(data);
         report.setCharts(List.of(chart1, chart2));
 
+        log.info("Отчёт DAILY_REPORT сформирован");
+
         return report;
     }
 
     public ReportDTO getSummaryReport(LocalDateTime start, LocalDateTime end) {
+        validatePeriod(start, end);
+        log.debug("Формирование отчёта SUMMARY_REPORT за период {} - {}", start, end);
+
         List<Object[]> movieStats = sessionRepository.getMovieStats(start, end);
         List<Object[]> hallStats = sessionRepository.getHallStats(start, end);
         List<Object[]> dailyStats = sessionRepository.getDailyTrends(start, end);
@@ -402,7 +517,22 @@ public class SessionService {
         report.setData(data);
         report.setCharts(List.of(chart));
 
+        log.info("Отчёт SUMMARY_REPORT сформирован");
+
         return report;
+    }
+
+    private void validatePeriod(LocalDateTime start, LocalDateTime end) {
+        if (start == null || end == null) {
+            log.warn("Некорректный период: start={}, end={}", start, end);
+            throw new SessionExceptions.InvalidPeriod(
+                    "Дата начала и конца периода обязательны");
+        }
+        if (start.isAfter(end)) {
+            log.warn("Некорректный период: start={} позже end={}", start, end);
+            throw new SessionExceptions.InvalidPeriod(
+                    "Дата начала не может быть позже даты конца");
+        }
     }
 
     private SessionDTO convertToDTO(Session session) {

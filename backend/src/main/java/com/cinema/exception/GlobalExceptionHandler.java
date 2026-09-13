@@ -210,6 +210,71 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("Не удалось отправить отчёт: " + ex.getMessage()));
     }
 
+    // ---------- Session ----------
+
+    @ExceptionHandler(SessionExceptions.NotFound.class)
+    public ResponseEntity<ErrorResponse> handleSessionNotFound(SessionExceptions.NotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.TimeOverlap.class)
+    public ResponseEntity<ErrorResponse> handleSessionTimeOverlap(SessionExceptions.TimeOverlap ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.InvalidStatus.class)
+    public ResponseEntity<ErrorResponse> handleSessionInvalidStatus(SessionExceptions.InvalidStatus ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.Cancelled.class)
+    public ResponseEntity<ErrorResponse> handleSessionCancelled(SessionExceptions.Cancelled ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.Completed.class)
+    public ResponseEntity<ErrorResponse> handleSessionCompleted(SessionExceptions.Completed ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.SeatOccupied.class)
+    public ResponseEntity<ErrorResponse> handleSeatOccupied(SessionExceptions.SeatOccupied ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.InvalidData.class)
+    public ResponseEntity<ErrorResponse> handleSessionInvalidData(SessionExceptions.InvalidData ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.CannotDelete.class)
+    public ResponseEntity<ErrorResponse> handleSessionCannotDelete(SessionExceptions.CannotDelete ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(SessionExceptions.InvalidPeriod.class)
+    public ResponseEntity<ErrorResponse> handleSessionInvalidPeriod(SessionExceptions.InvalidPeriod ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
     // ---------- Validation ----------
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
