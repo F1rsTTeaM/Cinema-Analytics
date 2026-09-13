@@ -90,6 +90,36 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
+    // ---------- Product ----------
+
+    @ExceptionHandler(ProductExceptions.NotFound.class)
+    public ResponseEntity<ErrorResponse> handleProductNotFound(ProductExceptions.NotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductExceptions.DuplicateName.class)
+    public ResponseEntity<ErrorResponse> handleProductDuplicateName(ProductExceptions.DuplicateName ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductExceptions.InvalidData.class)
+    public ResponseEntity<ErrorResponse> handleProductInvalidData(ProductExceptions.InvalidData ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductExceptions.CannotDelete.class)
+    public ResponseEntity<ErrorResponse> handleProductCannotDelete(ProductExceptions.CannotDelete ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
     // ---------- User ----------
 
     @ExceptionHandler(UserExceptions.DuplicateUsername.class)
