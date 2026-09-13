@@ -120,6 +120,29 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
+    // ---------- ProductSale ----------
+
+    @ExceptionHandler(ProductSaleExceptions.NotFound.class)
+    public ResponseEntity<ErrorResponse> handleSaleNotFound(ProductSaleExceptions.NotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductSaleExceptions.InvalidData.class)
+    public ResponseEntity<ErrorResponse> handleSaleInvalidData(ProductSaleExceptions.InvalidData ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ProductSaleExceptions.ProductNotFound.class)
+    public ResponseEntity<ErrorResponse> handleSaleProductNotFound(ProductSaleExceptions.ProductNotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
     // ---------- User ----------
 
     @ExceptionHandler(UserExceptions.DuplicateUsername.class)
