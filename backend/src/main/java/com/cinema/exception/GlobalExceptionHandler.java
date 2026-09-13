@@ -60,6 +60,36 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
+    // ---------- Hall ----------
+
+    @ExceptionHandler(HallExceptions.NotFound.class)
+    public ResponseEntity<ErrorResponse> handleHallNotFound(HallExceptions.NotFound ex) {
+        log.warn("404: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(HallExceptions.DuplicateName.class)
+    public ResponseEntity<ErrorResponse> handleHallDuplicateName(HallExceptions.DuplicateName ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(HallExceptions.InvalidData.class)
+    public ResponseEntity<ErrorResponse> handleHallInvalidData(HallExceptions.InvalidData ex) {
+        log.warn("400: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(HallExceptions.CannotDelete.class)
+    public ResponseEntity<ErrorResponse> handleHallCannotDelete(HallExceptions.CannotDelete ex) {
+        log.warn("409: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(ex.getMessage()));
+    }
+
     // ---------- User ----------
 
     @ExceptionHandler(UserExceptions.DuplicateUsername.class)
