@@ -406,6 +406,12 @@
   margin-top: 8px;
 }
 
+.fieldHint {
+    color: #7f8c8d;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

@@ -209,6 +209,11 @@ function MovieForm({ movie, onSubmit, onCancel, loading }) {
                             max={MAX_DURATION}
                             className={inputClass('durationMinutes')}
                         />
+                        {!invalidFields.durationMinutes && formData.durationMinutes && (
+                            <div className={styles.fieldHint}>
+                                От 1 до {MAX_DURATION} минут
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.inputGroup}>

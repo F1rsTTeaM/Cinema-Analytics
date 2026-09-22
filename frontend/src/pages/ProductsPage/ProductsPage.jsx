@@ -334,6 +334,11 @@ function ProductsPage() {
                                     step="0.01"
                                     className={inputClass('price')}
                                 />
+                                {!formErrors.price && formData.price && (
+                                    <div className={styles.fieldHint}>
+                                        Цена: {formatPrice(parseFloat(formData.price) || 0)} — максимум {MAX_PRICE.toLocaleString('ru-RU')} ₽
+                                    </div>
+                                )}
                             </div>
 
                             <div className={styles.buttonGroup}>
