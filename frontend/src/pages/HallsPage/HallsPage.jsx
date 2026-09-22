@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHalls } from '../../hooks/useHalls';
 import styles from './HallsPage.module.css';
+
+const MAX_NAME = 100;
+const MIN_NAME = 2;
+const MAX_ROWS = 20;
+const MAX_SEATS = 30;
 
 function HallsPage() {
   const {
@@ -16,7 +21,7 @@ function HallsPage() {
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
-  const [formSuccess, setFormSuccess] = useState('');
+  const [formMessage, setFormMessage] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     rowsCount: '',
@@ -24,62 +29,32 @@ function HallsPage() {
   });
   const [searchQuery, setSearchQuery] = useState('');
 
-  const validateForm = () => {
-    const errors = {};
-    let isValid = true;
-
-    if (!formData.name.trim()) {
-      errors.name = 'Название зала обязательно';
-      isValid = false;
-    } else if (formData.name.trim().length < 2) {
-      errors.name = 'Название должно содержать минимум 2 символа';
-      isValid = false;
-    } else {
-      const existing = halls.find(
-        h => h.name.toLowerCase() === formData.name.trim().toLowerCase()
-      );
-      if (existing) {
-        errors.name = `Зал с именем "${formData.name.trim()}" уже существует`;
-        isValid = false;
-      }
+  useEffect(() => {
+    if (formMessage) {
+      const timer = setTimeout(() => setFormMessage(''), 3000);
+      return () => clearTimeout(timer);
     }
+  }, [formMessage]);
 
-    const rows = parseInt(formData.rowsCount);
-    if (!formData.rowsCount) {
-      errors.rowsCount = 'Укажите количество рядов';
-      isValid = false;
-    } else if (isNaN(rows) || rows < 1) {
-      errors.rowsCount = 'Количество рядов должно быть больше 0';
-      isValid = false;
-    } else if (rows > 20) {
-      errors.rowsCount = 'Максимальное количество рядов - 20';
-      isValid = false;
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 1500);
+      return () => clearTimeout(timer);
     }
-
-    const seats = parseInt(formData.seatsPerRow);
-    if (!formData.seatsPerRow) {
-      errors.seatsPerRow = 'Укажите количество мест в ряду';
-      isValid = false;
-    } else if (isNaN(seats) || seats < 1) {
-      errors.seatsPerRow = 'Количество мест должно быть больше 0';
-      isValid = false;
-    } else if (seats > 30) {
-      errors.seatsPerRow = 'Максимальное количество мест в ряду - 30';
-      isValid = false;
-    }
-
-    setFormErrors(errors);
-    return isValid;
-  };
+  }, [message, setMessage]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
     if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+      setFormErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
     }
-    setFormSuccess('');
-    setMessage('');
+    if (formMessage) setFormMessage('');
   };
 
   const handleSearch = (e) => {
@@ -93,38 +68,119 @@ function HallsPage() {
     searchHalls('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const invalid = {};
+    const errors = [];
 
-    if (!validateForm()) {
-      return;
+    const name = formData.name.trim();
+    if (!name) {
+      invalid.name = true;
+      errors.push('Название зала обязательно');
+    } else if (name.length < MIN_NAME) {
+      invalid.name = true;
+      errors.push(`Название должно содержать минимум ${MIN_NAME} символа`);
+    } else if (name.length > MAX_NAME) {
+      invalid.name = true;
+      errors.push(`Название не должно превышать ${MAX_NAME} символов`);
+    } else {
+      const existing = halls.find(
+        h => h.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) {
+        invalid.name = true;
+        errors.push(`Зал с именем "${name}" уже существует`);
+      }
     }
 
-    setFormLoading(true);
-    setFormSuccess('');
+    const rows = parseInt(formData.rowsCount, 10);
+    if (!formData.rowsCount) {
+      invalid.rowsCount = true;
+      errors.push('Укажите количество рядов');
+    } else if (Number.isNaN(rows) || rows < 1) {
+      invalid.rowsCount = true;
+      errors.push('Количество рядов должно быть больше 0');
+    } else if (rows > MAX_ROWS) {
+      invalid.rowsCount = true;
+      errors.push(`Максимальное количество рядов — ${MAX_ROWS}`);
+    }
+
+    const seats = parseInt(formData.seatsPerRow, 10);
+    if (!formData.seatsPerRow) {
+      invalid.seatsPerRow = true;
+      errors.push('Укажите количество мест в ряду');
+    } else if (Number.isNaN(seats) || seats < 1) {
+      invalid.seatsPerRow = true;
+      errors.push('Количество мест должно быть больше 0');
+    } else if (seats > MAX_SEATS) {
+      invalid.seatsPerRow = true;
+      errors.push(`Максимальное количество мест в ряду — ${MAX_SEATS}`);
+    }
+
+    if (Object.keys(invalid).length === 0) return null;
+    return { invalid, msg: errors.join('; ') };
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormMessage('');
+
+    const result = validateForm();
+    if (result) {
+      setFormErrors(result.invalid);
+      setFormMessage('❌ ' + result.msg);
+      return;
+    }
     setFormErrors({});
+
+    setFormLoading(true);
 
     try {
       const data = {
         name: formData.name.trim(),
-        rowsCount: parseInt(formData.rowsCount),
-        seatsPerRow: parseInt(formData.seatsPerRow)
+        rowsCount: parseInt(formData.rowsCount, 10),
+        seatsPerRow: parseInt(formData.seatsPerRow, 10)
       };
 
-      const result = await createHall(data);
-      
-      setFormSuccess(`✔️ Зал "${result.name}" успешно создан!`);
-      setFormData({ name: '', rowsCount: '', seatsPerRow: '' });
+      await createHall(data);
 
       setShowForm(false);
       setFormData({ name: '', rowsCount: '', seatsPerRow: '' });
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Ошибка создания зала';
-      if (errorMsg.includes('существует')) {
-        setFormErrors({ name: errorMsg });
-      } else {
-        setMessage('❌ ' + errorMsg);
+      setFormErrors({});
+      setFormMessage('');
+    } catch (err) {
+      const data = err.response?.data;
+      let msg = 'Ошибка создания зала';
+      const invalid = {};
+
+      if (typeof data === 'string') {
+        msg = data;
+      } else if (data && typeof data === 'object') {
+        if (typeof data.message === 'string' && data.message.trim()) {
+          msg = data.message;
+        }
+
+        const fieldsSource = data.errors && typeof data.errors === 'object'
+          ? data.errors
+          : data;
+
+        Object.entries(fieldsSource).forEach(([field, value]) => {
+          if (['name', 'rowsCount', 'seatsPerRow'].includes(field)
+            && typeof value === 'string') {
+            invalid[field] = true;
+          }
+        });
+
+        if (msg === 'Ошибка создания зала' && data.errors) {
+          const values = Object.values(data.errors).filter(v => typeof v === 'string');
+          if (values.length) msg = values.join('; ');
+        } else if (msg === 'Ошибка создания зала') {
+          const values = Object.values(fieldsSource).filter(v => typeof v === 'string');
+          if (values.length) msg = values.join('; ');
+        }
       }
+
+      setFormErrors(invalid);
+      setFormMessage('❌ ' + msg);
     } finally {
       setFormLoading(false);
     }
@@ -134,19 +190,22 @@ function HallsPage() {
     setShowForm(false);
     setFormData({ name: '', rowsCount: '', seatsPerRow: '' });
     setFormErrors({});
-    setFormSuccess('');
-    setMessage('');
+    setFormMessage('');
   };
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (window.confirm(`Вы уверены, что хотите удалить зал "${name}"?`)) {
-      deleteHall(id, name);
+      try {
+        await deleteHall(id, name);
+      } catch (err) {
+      }
     }
   };
 
-  const getTotalSeats = (rows, seatsPerRow) => {
-    return rows * seatsPerRow;
-  };
+  const getTotalSeats = (rows, seatsPerRow) => rows * seatsPerRow;
+
+  const inputClass = (field) =>
+    `${styles.input} ${formErrors[field] ? styles.inputError : ''}`;
 
   return (
     <div className={styles.container}>
@@ -157,7 +216,7 @@ function HallsPage() {
           onClick={() => {
             setFormData({ name: '', rowsCount: '', seatsPerRow: '' });
             setFormErrors({});
-            setFormSuccess('');
+            setFormMessage('');
             setShowForm(true);
           }}
         >
@@ -173,10 +232,7 @@ function HallsPage() {
           placeholder="Поиск залов..."
           className={styles.searchInput}
         />
-        <button
-          className={styles.refreshButton}
-          onClick={handleRefresh}
-        >
+        <button className={styles.refreshButton} onClick={handleRefresh}>
           Обновить
         </button>
       </div>
@@ -201,9 +257,7 @@ function HallsPage() {
             <div key={hall.id} className={styles.card}>
               <div className={styles.cardHeader}>
                 <h3 className={styles.hallName}>{hall.name}</h3>
-                <span className={styles.hallCapacity}>
-                  {hall.capacity} мест
-                </span>
+                <span className={styles.hallCapacity}>{hall.capacity} мест</span>
               </div>
               <div className={styles.cardInfo}>
                 <div className={styles.infoRow}>
@@ -237,11 +291,20 @@ function HallsPage() {
           <div className={styles.modal}>
             <h2 className={styles.modalTitle}>Создать новый зал</h2>
 
-            {formSuccess && (
-              <div className={styles.formSuccess}>{formSuccess}</div>
+            {formMessage && (
+              <div className={`${styles.message} ${formMessage.includes('❌') ? styles.error : styles.success}`}>
+                {formMessage}
+                <button
+                  type="button"
+                  className={styles.closeMessage}
+                  onClick={() => setFormMessage('')}
+                >
+                  ×
+                </button>
+              </div>
             )}
 
-            <form onSubmit={handleSubmit} className={styles.form}>
+            <form onSubmit={handleSubmit} className={styles.form} noValidate>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Название зала</label>
                 <input
@@ -250,12 +313,8 @@ function HallsPage() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Зал 1"
-                  required
-                  className={`${styles.input} ${formErrors.name ? styles.inputError : ''}`}
+                  className={inputClass('name')}
                 />
-                {formErrors.name && (
-                  <div className={styles.fieldError}>{formErrors.name}</div>
-                )}
                 {!formErrors.name && formData.name && (
                   <div className={styles.fieldHint}>
                     {halls.some(h => h.name.toLowerCase() === formData.name.trim().toLowerCase())
@@ -274,16 +333,14 @@ function HallsPage() {
                     value={formData.rowsCount}
                     onChange={handleChange}
                     placeholder="5"
-                    required
                     min="1"
-                    max="20"
-                    className={`${styles.input} ${formErrors.rowsCount ? styles.inputError : ''}`}
+                    max={MAX_ROWS}
+                    className={inputClass('rowsCount')}
                   />
-                  {formErrors.rowsCount && (
-                    <div className={styles.fieldError}>{formErrors.rowsCount}</div>
-                  )}
                   {!formErrors.rowsCount && formData.rowsCount && (
-                    <div className={styles.fieldHint}>Допустимо от 1 до 20 рядов</div>
+                    <div className={styles.fieldHint}>
+                      Допустимо от 1 до {MAX_ROWS} рядов
+                    </div>
                   )}
                 </div>
 
@@ -295,16 +352,14 @@ function HallsPage() {
                     value={formData.seatsPerRow}
                     onChange={handleChange}
                     placeholder="10"
-                    required
                     min="1"
-                    max="30"
-                    className={`${styles.input} ${formErrors.seatsPerRow ? styles.inputError : ''}`}
+                    max={MAX_SEATS}
+                    className={inputClass('seatsPerRow')}
                   />
-                  {formErrors.seatsPerRow && (
-                    <div className={styles.fieldError}>{formErrors.seatsPerRow}</div>
-                  )}
                   {!formErrors.seatsPerRow && formData.seatsPerRow && (
-                    <div className={styles.fieldHint}>Допустимо от 1 до 30 мест</div>
+                    <div className={styles.fieldHint}>
+                      Допустимо от 1 до {MAX_SEATS} мест
+                    </div>
                   )}
                 </div>
               </div>
@@ -312,23 +367,17 @@ function HallsPage() {
               <div className={styles.preview}>
                 <p>
                   Вместимость: <strong>{getTotalSeats(
-                    parseInt(formData.rowsCount) || 0,
-                    parseInt(formData.seatsPerRow) || 0
+                    parseInt(formData.rowsCount, 10) || 0,
+                    parseInt(formData.seatsPerRow, 10) || 0
                   )}</strong> зрителей
                 </p>
-                {getTotalSeats(
-                  parseInt(formData.rowsCount) || 0,
-                  parseInt(formData.seatsPerRow) || 0
-                ) > 200 && (
-                  <p className={styles.previewWarning}>⚠️ Большой зал! Максимальная вместимость — 200 мест</p>
-                )}
               </div>
 
               <div className={styles.buttonGroup}>
                 <button
                   type="submit"
                   className={styles.submitButton}
-                  disabled={formLoading || !!formErrors.name}
+                  disabled={formLoading}
                 >
                   {formLoading ? 'Создание...' : 'Создать зал'}
                 </button>
