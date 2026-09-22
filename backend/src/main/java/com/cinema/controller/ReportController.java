@@ -4,7 +4,6 @@ import com.cinema.dto.EmailReportRequest;
 import com.cinema.dto.ReportDTO;
 import com.cinema.dto.ReportTaskResponse;
 import com.cinema.service.AsyncReportService;
-import com.cinema.service.EmailService;
 import com.cinema.service.ExportService;
 import com.cinema.service.ReportService;
 
@@ -19,8 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -32,9 +29,6 @@ public class ReportController {
 
     @Autowired
     private ExportService exportService;
-
-    @Autowired
-    private EmailService emailService;
 
     @Autowired
     private AsyncReportService asyncReportService;
