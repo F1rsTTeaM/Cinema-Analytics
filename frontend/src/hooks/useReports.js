@@ -10,14 +10,12 @@ export const useReports = () => {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage('');
-      }, 3000);
-      
+    if (message && !loading) {
+      const delay = message.includes('❌') ? 5000 : 1500;
+      const timer = setTimeout(() => setMessage(''), delay);
       return () => clearTimeout(timer);
     }
-  }, [message]);
+  }, [message, loading]);
 
   const generateReport = useCallback(async (category, reportType, startDate, endDate) => {
     setLoading(true);
@@ -27,7 +25,7 @@ export const useReports = () => {
 
     try {
       const token = localStorage.getItem('token');
-      
+
       const endpoints = {
         tickets: {
           summary: '/reports/tickets/summary',
@@ -49,7 +47,7 @@ export const useReports = () => {
 
       const start = startDate + 'T00:00:00';
       const end = endDate + 'T23:59:59';
-      
+
       const response = await axios.get(
         `${API_URL}${endpoint}`,
         {
@@ -57,7 +55,7 @@ export const useReports = () => {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
-      
+
       setReportData(response.data);
       setMessage('Отчет успешно сгенерирован');
       return response.data;
@@ -81,14 +79,14 @@ export const useReports = () => {
       const token = localStorage.getItem('token');
       const start = startDate + 'T00:00:00';
       const end = endDate + 'T23:59:59';
-      
+
       const reportTypeFull = category + '-' + reportType;
-      
+
       const response = await axios.get(
         `${API_URL}/reports/export/${reportTypeFull}/${format}`,
         {
           params: { start, end },
-          headers: { 
+          headers: {
             Authorization: `Bearer ${token}`,
             'Accept': 'application/octet-stream'
           },
@@ -99,7 +97,7 @@ export const useReports = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      
+
       const contentDisposition = response.headers['content-disposition'];
       let filename = `report.${format}`;
       if (contentDisposition) {
@@ -134,13 +132,13 @@ export const useReports = () => {
   const sendReportEmail = useCallback(async (toEmail, reportType, format, startDate, endDate, subject, message) => {
     setLoading(true);
     setError(null);
-    setMessage('');
+    setMessage('Отправка отчёта запущена...');
 
     try {
       const token = localStorage.getItem('token');
       const start = startDate + 'T00:00:00';
       const end = endDate + 'T23:59:59';
-      
+
       const requestData = {
         toEmail,
         reportType,
@@ -151,21 +149,47 @@ export const useReports = () => {
         message
       };
 
-      const response = await axios.post(
+      const postResponse = await axios.post(
         `${API_URL}/reports/send-email`,
         requestData,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
       );
-      
-      setMessage(response.data.message || 'Отчет успешно отправлен');
-      return response.data;
+
+      const taskId = postResponse.data.taskId;
+      if (!taskId) throw new Error('Сервер не вернул taskId');
+
+      const deadline = Date.now() + 60_000;
+
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2000));
+
+        const statusResponse = await axios.get(
+          `${API_URL}/reports/tasks/${taskId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const { status, message: taskMessage } = statusResponse.data;
+
+        if (status === 'SUCCESS') {
+          setMessage(taskMessage || '✔️ Отчет успешно отправлен');
+          setLoading(false);
+          return statusResponse.data;
+        }
+
+        if (status === 'FAILED') {
+          setError(taskMessage || 'Ошибка отправки');
+          setMessage(taskMessage || '❌ Ошибка отправки');
+          setLoading(false);
+          throw new Error(taskMessage);
+        }
+
+        setMessage((taskMessage || 'Отправка...'));
+      }
+
+      setMessage('❌ Превышено время ожидания отправки');
+      throw new Error('Timeout');
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка отправки отчета';
+      const errorMsg = err.response?.data?.message || err.message || 'Ошибка отправки отчета';
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       console.error('Error sending report:', err);

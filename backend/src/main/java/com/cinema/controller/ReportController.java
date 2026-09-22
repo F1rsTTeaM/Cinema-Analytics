@@ -2,6 +2,8 @@ package com.cinema.controller;
 
 import com.cinema.dto.EmailReportRequest;
 import com.cinema.dto.ReportDTO;
+import com.cinema.dto.ReportTaskResponse;
+import com.cinema.service.AsyncReportService;
 import com.cinema.service.EmailService;
 import com.cinema.service.ExportService;
 import com.cinema.service.ReportService;
@@ -33,6 +35,9 @@ public class ReportController {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private AsyncReportService asyncReportService;
 
     @GetMapping("/tickets/summary")
     public ResponseEntity<ReportDTO> getTicketSummary(
@@ -189,69 +194,20 @@ public class ReportController {
     }
 
     @PostMapping("/send-email")
-    public ResponseEntity<Map<String, String>> sendReportByEmail(@RequestBody EmailReportRequest request) {
+    public ResponseEntity<ReportTaskResponse> sendReportByEmail(@RequestBody EmailReportRequest request) {
         log.info("POST /api/reports/send-email - reportType={}, format={}, to='{}'",
                 request.getReportType(), request.getFormat(), request.getToEmail());
 
-        try {
-            ReportDTO report = getReportByType(request.getReportType(), request.getStartDate(), request.getEndDate());
+        String taskId = asyncReportService.startEmailTask(request);
 
-            byte[] content;
-            String fileName;
-            String contentType;
+        log.info("Задача отправки письма создана: taskId={}", taskId);
 
-            switch (request.getFormat().toLowerCase()) {
-                case "csv":
-                    content = exportService.exportCSV(report);
-                    fileName = request.getReportType() + "_" +
-                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
-                    contentType = "text/csv";
-                    break;
-                case "json":
-                    content = exportService.exportJSON(report);
-                    fileName = request.getReportType() + "_" +
-                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".json";
-                    contentType = "application/json";
-                    break;
-                case "pdf":
-                    content = exportService.exportPDF(report);
-                    fileName = request.getReportType() + "_" +
-                            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
-                    contentType = "application/pdf";
-                    break;
-                default:
-                    return ResponseEntity.badRequest()
-                            .body(Map.of("error", "Неизвестный формат: " + request.getFormat()));
-            }
+        return ResponseEntity.accepted().body(
+                new ReportTaskResponse(taskId, "PENDING", "Задача создана, отправка в процессе"));
+    }
 
-            String period = request.getStartDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) +
-                    " - " + request.getEndDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-
-            emailService.sendReportEmail(
-                    request.getToEmail(),
-                    request.getSubject(),
-                    request.getMessage(),
-                    fileName,
-                    content,
-                    contentType,
-                    report.getReportName(),
-                    period);
-
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "✔️ Отчет успешно отправлен на " + request.getToEmail());
-            response.put("status", "success");
-
-            log.info("Отчёт успешно отправлен на '{}' (файл: {})", request.getToEmail(), fileName);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "❌ Ошибка отправки: " + e.getMessage());
-            response.put("status", "error");
-            log.error("Ошибка отправки отчёта на '{}'", request.getToEmail());
-            return ResponseEntity.internalServerError().body(response);
-        }
+    @GetMapping("/tasks/{taskId}")
+    public ResponseEntity<ReportTaskResponse> getTaskStatus(@PathVariable String taskId) {
+        return ResponseEntity.ok(asyncReportService.getTask(taskId));
     }
 }

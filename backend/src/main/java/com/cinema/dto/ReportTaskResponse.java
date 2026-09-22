@@ -1,0 +1,14 @@
+package com.cinema.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReportTaskResponse {
+    private String taskId;
+    private String status;
+    private String message;
+}
