@@ -2,7 +2,8 @@ package com.cinema.exception;
 
 public final class SessionExceptions {
 
-    private SessionExceptions() {}
+    private SessionExceptions() {
+    }
 
     public static class NotFound extends RuntimeException {
         public NotFound(Long id) {
@@ -31,7 +32,7 @@ public final class SessionExceptions {
 
     public static class TimeOverlap extends RuntimeException {
         public TimeOverlap(Long hallId) {
-            super("В зале с id=" + hallId + " уже есть сеанс в указанное время");
+            super("В этом зале уже есть сеанс в указанное время");
         }
     }
 

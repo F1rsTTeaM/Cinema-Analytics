@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSessions } from '../../hooks/useSessions';
 import styles from './SessionsPage.module.css';
+
+const MIN_PRICE = 100;
+const MAX_PRICE = 10000;
+const MIN_DURATION_MINUTES = 60;
+const MAX_MONTHS_AHEAD = 3;
 
 function SessionsPage() {
   const {
@@ -22,6 +27,7 @@ function SessionsPage() {
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+  const [formMessage, setFormMessage] = useState('');
   const [formData, setFormData] = useState({
     movieId: '',
     hallId: '',
@@ -30,89 +36,199 @@ function SessionsPage() {
     ticketPrice: ''
   });
 
+  // Автоскрытие сообщения в форме
+  useEffect(() => {
+    if (formMessage) {
+      const timer = setTimeout(() => setFormMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [formMessage]);
+
+  // Автоскрытие сообщения страницы
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(''), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [message, setMessage]);
+
+  // Сброс ошибок/сообщений при закрытии формы
+  useEffect(() => {
+    if (!showForm) {
+      setFormErrors({});
+      setFormMessage('');
+    }
+  }, [showForm]);
+
+  const todayStr = new Date().toISOString().slice(0, 16);
+  const maxDateStr = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30 * MAX_MONTHS_AHEAD)
+    .toISOString().slice(0, 16);
+
+  const handleChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors(prev => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      });
+    }
+    if (formMessage) setFormMessage('');
+  };
+
   const validateForm = () => {
-  const errors = {};
-  let isValid = true;
+    const invalid = {};
+    const errors = [];
 
-  if (!formData.movieId) {
-    errors.movieId = 'Выберите фильм';
-    isValid = false;
-  }
+    if (!formData.movieId) {
+      invalid.movieId = true;
+      errors.push('Выберите фильм');
+    }
+    if (!formData.hallId) {
+      invalid.hallId = true;
+      errors.push('Выберите зал');
+    }
 
-  if (!formData.hallId) {
-    errors.hallId = 'Выберите зал';
-    isValid = false;
-  }
+    const now = new Date();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + MAX_MONTHS_AHEAD);
 
-  if (!formData.startTime) {
-    errors.startTime = 'Укажите время начала';
-    isValid = false;
-  }
-
-  if (!formData.endTime) {
-    errors.endTime = 'Укажите время окончания';
-    isValid = false;
-  }
-
-  if (formData.startTime && formData.endTime) {
-    const start = new Date(formData.startTime);
-    const end = new Date(formData.endTime);
-    
-    if (end <= start) {
-      errors.endTime = 'Время окончания должно быть позже времени начала';
-      isValid = false;
+    if (!formData.startTime) {
+      invalid.startTime = true;
+      errors.push('Укажите время начала');
     } else {
-      const durationMinutes = (end - start) / (1000 * 60);
-      if (durationMinutes < 30) {
-        errors.endTime = 'Минимальная длительность сеанса — 30 минут';
-        isValid = false;
+      const start = new Date(formData.startTime);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      if (start < todayStart) {
+        invalid.startTime = true;
+        errors.push('Начало сеанса не может быть раньше сегодняшнего дня');
+      } else if (start > maxDate) {
+        invalid.startTime = true;
+        errors.push(`Начало сеанса не может быть позже ${MAX_MONTHS_AHEAD} месяцев от текущей даты`);
       }
     }
-  }
 
-  if (!formData.ticketPrice) {
-    errors.ticketPrice = 'Укажите цену билета';
-    isValid = false;
-  } else if (parseFloat(formData.ticketPrice) < 0) {
-    errors.ticketPrice = 'Цена не может быть отрицательной';
-    isValid = false;
-  }
+    if (!formData.endTime) {
+      invalid.endTime = true;
+      errors.push('Укажите время окончания');
+    } else {
+      const end = new Date(formData.endTime);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
 
-  setFormErrors(errors);
-  return isValid;
-};
+      if (end < todayStart) {
+        invalid.endTime = true;
+        errors.push('Окончание сеанса не может быть раньше сегодняшнего дня');
+      } else if (end > maxDate) {
+        invalid.endTime = true;
+        errors.push(`Окончание сеанса не может быть позже ${MAX_MONTHS_AHEAD} месяцев от текущей даты`);
+      }
+    }
+
+    if (formData.startTime && formData.endTime) {
+      const start = new Date(formData.startTime);
+      const end = new Date(formData.endTime);
+
+      if (end <= start) {
+        invalid.endTime = true;
+        errors.push('Время окончания должно быть позже времени начала');
+      } else {
+        const minutes = (end - start) / (1000 * 60);
+        if (minutes < MIN_DURATION_MINUTES) {
+          invalid.endTime = true;
+          errors.push(`Минимальная длительность сеанса — ${MIN_DURATION_MINUTES} минут`);
+        }
+      }
+    }
+
+    if (!formData.ticketPrice && formData.ticketPrice !== 0) {
+      invalid.ticketPrice = true;
+      errors.push('Укажите цену билета');
+    } else {
+      const price = parseFloat(formData.ticketPrice);
+      if (Number.isNaN(price)) {
+        invalid.ticketPrice = true;
+        errors.push('Цена должна быть числом');
+      } else if (price < MIN_PRICE) {
+        invalid.ticketPrice = true;
+        errors.push(`Цена билета должна быть не менее ${MIN_PRICE} ₽`);
+      } else if (price > MAX_PRICE) {
+        invalid.ticketPrice = true;
+        errors.push(`Цена билета не должна превышать ${MAX_PRICE.toLocaleString('ru-RU')} ₽`);
+      }
+    }
+
+    if (Object.keys(invalid).length === 0) return null;
+    return { invalid, msg: errors.join('; ') };
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    setFormMessage('');
 
-    if (!validateForm()) {
+    const result = validateForm();
+    if (result) {
+      setFormErrors(result.invalid);
+      setFormMessage('❌ ' + result.msg);
       return;
     }
+    setFormErrors({});
 
     setFormLoading(true);
-    setFormErrors({});
 
     try {
       const data = {
-        ...formData,
-        movieId: parseInt(formData.movieId),
-        hallId: parseInt(formData.hallId),
+        movieId: parseInt(formData.movieId, 10),
+        hallId: parseInt(formData.hallId, 10),
+        startTime: formData.startTime + ':00',
+        endTime: formData.endTime + ':00',
         ticketPrice: parseFloat(formData.ticketPrice)
       };
 
       await createSession(data);
+
       setShowForm(false);
       setFormData({ movieId: '', hallId: '', startTime: '', endTime: '', ticketPrice: '' });
       setFormErrors({});
-    } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'Ошибка создания сеанса';
-      if (errorMsg.includes('пересекается') || errorMsg.includes('уже есть сеанс')) {
-        setFormErrors({ hallId: errorMsg });
-      } else if (errorMsg.includes('минимальная длительность')) {
-        setFormErrors({ endTime: errorMsg });
-      } else {
-        console.error('Error creating session:', errorMsg);
+      setFormMessage('');
+    } catch (err) {
+      const data = err.response?.data;
+      let msg = 'Ошибка создания сеанса';
+      const invalid = {};
+
+      if (typeof data === 'string') {
+        msg = data;
+      } else if (data && typeof data === 'object') {
+        if (typeof data.message === 'string' && data.message.trim()) {
+          msg = data.message;
+        }
+
+        const src = data.errors && typeof data.errors === 'object' ? data.errors : data;
+        Object.entries(src).forEach(([field, value]) => {
+          if (['movieId', 'hallId', 'startTime', 'endTime', 'ticketPrice'].includes(field)
+              && typeof value === 'string') {
+            invalid[field] = true;
+          }
+        });
+
+        if (msg === 'Ошибка создания сеанса') {
+          const values = Object.values(src).filter(v => typeof v === 'string');
+          if (values.length) msg = values.join('; ');
+        }
+
+        // Эвристика: сервер вернул что-то про пересечение — подсветим зал
+        if (/пересека|занят|уже есть сеанс/i.test(msg)) {
+          invalid.hallId = true;
+        }
+        if (/длительн|1 час|60 мин/i.test(msg)) {
+          invalid.endTime = true;
+        }
       }
+
+      setFormErrors(invalid);
+      setFormMessage('❌ ' + msg);
     } finally {
       setFormLoading(false);
     }
@@ -122,14 +238,16 @@ function SessionsPage() {
     const statuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'SOLD_OUT'];
     const currentIndex = statuses.indexOf(currentStatus);
     const nextIndex = (currentIndex + 1) % statuses.length;
-    const newStatus = statuses[nextIndex];
-
-    await updateSessionStatus(id, newStatus);
+    await updateSessionStatus(id, statuses[nextIndex]);
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Вы уверены, что хотите удалить этот сеанс?')) {
-      await deleteSession(id);
+      try {
+        await deleteSession(id);
+      } catch (err) {
+        // message уже показан через хук
+      }
     }
   };
 
@@ -138,7 +256,6 @@ function SessionsPage() {
       setMessage('❌ Выберите хотя бы одно место');
       return;
     }
-
     await purchaseTickets(selectedSession.id, selectedSeats);
     setSelectedSeats([]);
     setShowSeatSelection(false);
@@ -146,9 +263,7 @@ function SessionsPage() {
 
   const toggleSeat = (seat) => {
     setSelectedSeats(prev =>
-      prev.includes(seat)
-        ? prev.filter(s => s !== seat)
-        : [...prev, seat]
+      prev.includes(seat) ? prev.filter(s => s !== seat) : [...prev, seat]
     );
   };
 
@@ -174,21 +289,25 @@ function SessionsPage() {
     return colors[status] || '#999';
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('ru-RU', {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
 
-  const isPurchasable = (session) => {
-    return session.status !== 'CANCELLED' && 
-           session.status !== 'COMPLETED' && 
-           session.status !== 'SOLD_OUT';
-  };
+  const isPurchasable = (session) =>
+    session.status !== 'CANCELLED' &&
+    session.status !== 'COMPLETED' &&
+    session.status !== 'SOLD_OUT';
+
+  const inputClass = (field) =>
+    `${styles.input} ${formErrors[field] ? styles.inputError : ''}`;
+
+  const selectClass = (field) =>
+    `${styles.select} ${formErrors[field] ? styles.inputError : ''}`;
 
   return (
     <div className={styles.container}>
@@ -286,31 +405,34 @@ function SessionsPage() {
         <div className={styles.overlay}>
           <div className={styles.modal}>
             <h2 className={styles.modalTitle}>Добавить сеанс</h2>
-            <form onSubmit={handleCreate} className={styles.form}>
+
+            {formMessage && (
+              <div className={`${styles.message} ${formMessage.includes('❌') ? styles.error : styles.success}`}>
+                {formMessage}
+                <button
+                  type="button"
+                  className={styles.closeMessage}
+                  onClick={() => setFormMessage('')}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleCreate} className={styles.form} noValidate>
               <div className={styles.inputGroup}>
                 <label className={styles.label}>Фильм</label>
                 <select
                   name="movieId"
                   value={formData.movieId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, movieId: e.target.value });
-                    if (formErrors.movieId) {
-                      setFormErrors({ ...formErrors, movieId: '' });
-                    }
-                  }}
-                  required
-                  className={`${styles.select} ${formErrors.movieId ? styles.inputError : ''}`}
+                  onChange={(e) => handleChange('movieId', e.target.value)}
+                  className={selectClass('movieId')}
                 >
                   <option value="">Выберите фильм</option>
                   {movies.map(movie => (
-                    <option key={movie.id} value={movie.id}>
-                      {movie.title}
-                    </option>
+                    <option key={movie.id} value={movie.id}>{movie.title}</option>
                   ))}
                 </select>
-                {formErrors.movieId && (
-                  <div className={styles.fieldError}>{formErrors.movieId}</div>
-                )}
               </div>
 
               <div className={styles.inputGroup}>
@@ -318,14 +440,8 @@ function SessionsPage() {
                 <select
                   name="hallId"
                   value={formData.hallId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, hallId: e.target.value });
-                    if (formErrors.hallId) {
-                      setFormErrors({ ...formErrors, hallId: '' });
-                    }
-                  }}
-                  required
-                  className={`${styles.select} ${formErrors.hallId ? styles.inputError : ''}`}
+                  onChange={(e) => handleChange('hallId', e.target.value)}
+                  className={selectClass('hallId')}
                 >
                   <option value="">Выберите зал</option>
                   {halls.map(hall => (
@@ -334,9 +450,6 @@ function SessionsPage() {
                     </option>
                   ))}
                 </select>
-                {formErrors.hallId && (
-                  <div className={styles.fieldError}>{formErrors.hallId}</div>
-                )}
               </div>
 
               <div className={styles.row}>
@@ -346,36 +459,33 @@ function SessionsPage() {
                     type="datetime-local"
                     name="startTime"
                     value={formData.startTime}
-                    onChange={(e) => {
-                      setFormData({ ...formData, startTime: e.target.value });
-                      if (formErrors.startTime) {
-                        setFormErrors({ ...formErrors, startTime: '' });
-                      }
-                    }}
-                    required
-                    className={`${styles.input} ${formErrors.startTime ? styles.inputError : ''}`}
+                    onChange={(e) => handleChange('startTime', e.target.value)}
+                    min={todayStr}
+                    max={maxDateStr}
+                    className={inputClass('startTime')}
                   />
-                  {formErrors.startTime && (
-                    <div className={styles.fieldError}>{formErrors.startTime}</div>
+                  {!formErrors.startTime && formData.startTime && (
+                    <div className={styles.fieldHint}>
+                      Не раньше сегодня и не позже {MAX_MONTHS_AHEAD} месяцев вперёд
+                    </div>
                   )}
                 </div>
+
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Конец</label>
                   <input
                     type="datetime-local"
                     name="endTime"
                     value={formData.endTime}
-                    onChange={(e) => {
-                      setFormData({ ...formData, endTime: e.target.value });
-                      if (formErrors.endTime) {
-                        setFormErrors({ ...formErrors, endTime: '' });
-                      }
-                    }}
-                    required
-                    className={`${styles.input} ${formErrors.endTime ? styles.inputError : ''}`}
+                    onChange={(e) => handleChange('endTime', e.target.value)}
+                    min={todayStr}
+                    max={maxDateStr}
+                    className={inputClass('endTime')}
                   />
-                  {formErrors.endTime && (
-                    <div className={styles.fieldError}>{formErrors.endTime}</div>
+                  {!formErrors.endTime && formData.endTime && (
+                    <div className={styles.fieldHint}>
+                      Не раньше начала и не позже {MAX_MONTHS_AHEAD} месяцев вперёд, минимум +1 час
+                    </div>
                   )}
                 </div>
               </div>
@@ -386,20 +496,17 @@ function SessionsPage() {
                   type="number"
                   name="ticketPrice"
                   value={formData.ticketPrice}
-                  onChange={(e) => {
-                    setFormData({ ...formData, ticketPrice: e.target.value });
-                    if (formErrors.ticketPrice) {
-                      setFormErrors({ ...formErrors, ticketPrice: '' });
-                    }
-                  }}
-                  placeholder="15.99"
-                  required
-                  min="0"
+                  onChange={(e) => handleChange('ticketPrice', e.target.value)}
+                  placeholder="500"
+                  min={MIN_PRICE}
+                  max={MAX_PRICE}
                   step="0.01"
-                  className={`${styles.input} ${formErrors.ticketPrice ? styles.inputError : ''}`}
+                  className={inputClass('ticketPrice')}
                 />
-                {formErrors.ticketPrice && (
-                  <div className={styles.fieldError}>{formErrors.ticketPrice}</div>
+                {!formErrors.ticketPrice && formData.ticketPrice && (
+                  <div className={styles.fieldHint}>
+                    От {MIN_PRICE} до {MAX_PRICE.toLocaleString('ru-RU')} ₽
+                  </div>
                 )}
               </div>
 
@@ -407,7 +514,16 @@ function SessionsPage() {
                 <button type="submit" className={styles.submitButton} disabled={formLoading}>
                   {formLoading ? 'Создание...' : 'Создать сеанс'}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} className={styles.cancelButton}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForm(false);
+                    setFormData({ movieId: '', hallId: '', startTime: '', endTime: '', ticketPrice: '' });
+                    setFormErrors({});
+                    setFormMessage('');
+                  }}
+                  className={styles.cancelButton}
+                >
                   Отмена
                 </button>
               </div>

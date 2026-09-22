@@ -34,7 +34,10 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class SessionService {
-    private static final long MIN_SESSION_DURATION_MINUTES = 30;
+    private static final long MIN_SESSION_DURATION_MINUTES = 60;
+    private static final long MAX_MONTHS_AHEAD = 3;
+    private static final BigDecimal MIN_TICKET_PRICE = new BigDecimal("100.00");
+    private static final BigDecimal MAX_TICKET_PRICE = new BigDecimal("10000.00");
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -119,6 +122,40 @@ public class SessionService {
             log.warn("Слишком короткий сеанс: {} мин (мин. {})",
                     duration, MIN_SESSION_DURATION_MINUTES);
             throw new SessionExceptions.DurationTooShort(duration, MIN_SESSION_DURATION_MINUTES);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime todayStart = now.toLocalDate().atStartOfDay();
+        LocalDateTime maxDate = now.plusMonths(MAX_MONTHS_AHEAD);
+
+        if (request.getStartTime().isBefore(todayStart)) {
+            log.warn("Начало сеанса раньше сегодня: {}", request.getStartTime());
+            throw new SessionExceptions.InvalidData(
+                    "Начало сеанса не может быть раньше сегодняшнего дня");
+        }
+        if (request.getStartTime().isAfter(maxDate)) {
+            log.warn("Начало сеанса позже {} мес.: {}", MAX_MONTHS_AHEAD, request.getStartTime());
+            throw new SessionExceptions.InvalidData(
+                    "Начало сеанса не может быть позже " + MAX_MONTHS_AHEAD + " месяцев от текущей даты");
+        }
+        if (request.getEndTime().isBefore(todayStart)) {
+            log.warn("Окончание сеанса раньше сегодня: {}", request.getEndTime());
+            throw new SessionExceptions.InvalidData(
+                    "Окончание сеанса не может быть раньше сегодняшнего дня");
+        }
+        if (request.getEndTime().isAfter(maxDate)) {
+            log.warn("Окончание сеанса позже {} мес.: {}", MAX_MONTHS_AHEAD, request.getEndTime());
+            throw new SessionExceptions.InvalidData(
+                    "Окончание сеанса не может быть позже " + MAX_MONTHS_AHEAD + " месяцев от текущей даты");
+        }
+
+        if (request.getTicketPrice() == null
+                || request.getTicketPrice().compareTo(MIN_TICKET_PRICE) < 0
+                || request.getTicketPrice().compareTo(MAX_TICKET_PRICE) > 0) {
+            log.warn("Некорректная цена билета: {}", request.getTicketPrice());
+            throw new SessionExceptions.InvalidData(
+                    "Цена билета должна быть в диапазоне от "
+                            + MIN_TICKET_PRICE + " до " + MAX_TICKET_PRICE + " ₽");
         }
 
         List<Session> overlapping = sessionRepository.findOverlappingSessions(

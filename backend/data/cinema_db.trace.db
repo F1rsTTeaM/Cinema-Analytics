@@ -14471,3 +14471,7 @@ Caused by: java.lang.AssertionError: 13
 org.h2.jdbc.JdbcSQLDataException: Значение слишком длинное для поля "TICKET_PRICE NUMERIC(10, 2)": "100000000000000000000000000000000.00 (35)"
 Value too long for column "TICKET_PRICE NUMERIC(10, 2)": "100000000000000000000000000000000.00 (35)"; SQL statement:
 insert into sessions (created_at,end_time,hall_id,movie_id,start_time,status,ticket_price,total_amount,id) values (?,?,?,?,?,?,?,?,default) [22001-240]
+2026-09-22 13:35:45.586808+04:00 jdbc[5]: exception
+org.h2.jdbc.JdbcSQLDataException: Значение слишком длинное для поля "NAME CHARACTER VARYING(255)": "U&'\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\0... (256)"
+Value too long for column "NAME CHARACTER VARYING(255)": "U&'\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\043b\\0... (256)"; SQL statement:
+insert into halls (capacity,name,rows_count,seats_per_row,id) values (?,?,?,?,default) [22001-240]

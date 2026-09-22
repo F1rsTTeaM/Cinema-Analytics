@@ -1,7 +1,8 @@
 package com.cinema.dto;
 
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -27,6 +28,7 @@ public class SessionCreateRequest {
     private LocalDateTime endTime;
 
     @NotNull(message = "Цена билета обязательна")
-    @Positive(message = "Цена билета должна быть больше 0")
+    @DecimalMin(value = "100.00", message = "Цена билета должна быть не менее 100 ₽")
+    @DecimalMax(value = "10000.00", message = "Цена билета не должна превышать 10 000 ₽")
     private BigDecimal ticketPrice;
 }
