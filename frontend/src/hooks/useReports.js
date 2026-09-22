@@ -13,7 +13,7 @@ export const useReports = () => {
     if (message) {
       const timer = setTimeout(() => {
         setMessage('');
-      }, 1500);
+      }, 3000);
       
       return () => clearTimeout(timer);
     }
@@ -64,7 +64,7 @@ export const useReports = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Ошибка генерации отчета';
       setError(errorMsg);
-      setMessage('Ошибка генерации отчета');
+      setMessage('❌ ' + errorMsg);
       console.error('Error generating report:', err);
       throw err;
     } finally {
@@ -117,7 +117,7 @@ export const useReports = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Ошибка экспорта отчета';
       setError(errorMsg);
-      setMessage('Ошибка экспорта отчета');
+      setMessage('❌ ' + errorMsg);
       console.error('Error exporting report:', err);
       throw err;
     } finally {
@@ -167,7 +167,7 @@ export const useReports = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.message || 'Ошибка отправки отчета';
       setError(errorMsg);
-      setMessage('Ошибка отправки: ' + errorMsg);
+      setMessage('❌ ' + errorMsg);
       console.error('Error sending report:', err);
       throw err;
     } finally {

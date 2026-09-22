@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useReports } from '../../hooks/useReports';
 import styles from './ReportsPage.module.css';
 
+const MIN_DATE = '2020-01-01';
+
 function ReportsPage() {
   const {
     reportData,
@@ -371,7 +373,7 @@ function ReportsPage() {
       <h1 className={styles.title}>Отчеты и аналитика</h1>
 
       {message && (
-        <div className={`${styles.message} ${message.includes('Ошибка') ? styles.error : styles.success}`}>
+        <div className={`${styles.message} ${message.includes('❌') ? styles.error : styles.success}`}>
           {message}
           <button className={styles.closeMessage} onClick={() => setMessage('')}>×</button>
         </div>
@@ -409,6 +411,8 @@ function ReportsPage() {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            min={MIN_DATE}
+            max={new Date().toISOString().split('T')[0]}
             className={styles.input}
           />
         </div>
@@ -419,6 +423,8 @@ function ReportsPage() {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            min={MIN_DATE}
+            max={new Date().toISOString().split('T')[0]}
             className={styles.input}
           />
         </div>
