@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSales } from '../../hooks/useSales';
 import styles from './SalesPage.module.css';
 
+const MAX_COUNT = 10;
+const MIN_COUNT = 1;
+
 function SalesPage() {
   const {
     sales,
@@ -16,54 +19,70 @@ function SalesPage() {
   const [selectedProductId, setSelectedProductId] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [formLoading, setFormLoading] = useState(false);
-  const [formSuccess, setFormSuccess] = useState('');
-  const [formError, setFormError] = useState('');
-
-  useEffect(() => {
-    if (formSuccess) {
-      const timer = setTimeout(() => setFormSuccess(''), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [formSuccess]);
+  const [invalidFields, setInvalidFields] = useState({});
 
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
         setMessage('');
-      }, 1500);
+      }, 3000);
 
       return () => clearTimeout(timer);
     }
   }, [message, setMessage]);
 
-  useEffect(() => {
-  console.log('Sales data:', sales);
-}, [sales]);
+  const handleProductChange = (e) => {
+    setSelectedProductId(e.target.value);
+    setInvalidFields(prev => {
+      const next = { ...prev };
+      delete next.product;
+      return next;
+    });
+  };
+
+  const handleQuantityChange = (e) => {
+    setQuantity(e.target.value);
+    setInvalidFields(prev => {
+      const next = { ...prev };
+      delete next.quantity;
+      return next;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
+
+    const invalid = {};
+    const errors = [];
 
     if (!selectedProductId) {
-      setFormError('Выберите товар');
+      invalid.product = true;
+      errors.push('Выберите товар');
+    }
+
+    const qty = parseInt(quantity, 10);
+    if (Number.isNaN(qty) || qty < MIN_COUNT) {
+      invalid.quantity = true;
+      errors.push('Количество должно быть больше 0');
+    } else if (qty > MAX_COUNT) {
+      invalid.quantity = true;
+      errors.push(`За одну продажу можно продать не более ${MAX_COUNT} единиц товара`);
+    }
+
+    if (Object.keys(invalid).length > 0) {
+      setInvalidFields(invalid);
+      setMessage('❌ ' + errors.join('; '));
       return;
     }
 
-    if (quantity < 1) {
-      setFormError('Количество должно быть больше 0');
-      return;
-    }
-
+    setInvalidFields({});
     setFormLoading(true);
 
     try {
-      await createSale(parseInt(selectedProductId), parseInt(quantity));
-      setFormSuccess('✔️ Продажа успешно зарегистрирована');
+      await createSale(parseInt(selectedProductId, 10), qty);
       setSelectedProductId('');
       setQuantity(1);
-    } catch (error) {
-      setFormError('❌ Ошибка при создании продажи');
+    } catch (err) {
     } finally {
       setFormLoading(false);
     }
@@ -71,11 +90,11 @@ function SalesPage() {
 
   const formatPrice = (price) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    
+
     if (numPrice === null || numPrice === undefined || isNaN(numPrice)) {
       return '—';
     }
-    
+
     return new Intl.NumberFormat('ru-RU', {
       style: 'currency',
       currency: 'RUB',
@@ -99,7 +118,7 @@ function SalesPage() {
     }
   };
 
-  const selectedProduct = products.find(p => p.id === parseInt(selectedProductId));
+  const selectedProduct = products.find(p => p.id === parseInt(selectedProductId, 10));
 
   return (
     <div className={styles.container}>
@@ -131,14 +150,13 @@ function SalesPage() {
         <div className={styles.saleForm}>
           <h2>Новая продажа</h2>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
             <div className={styles.inputGroup}>
               <label className={styles.label}>Выберите товар</label>
               <select
                 value={selectedProductId}
-                onChange={(e) => setSelectedProductId(e.target.value)}
-                className={styles.select}
-                required
+                onChange={handleProductChange}
+                className={`${styles.select} ${invalidFields.product ? styles.inputError : ''}`}
               >
                 <option value="">-- Выберите товар --</option>
                 {products.map(product => (
@@ -151,10 +169,10 @@ function SalesPage() {
 
             <div className={styles.inputGroup}>
               <label className={styles.label}>Количество</label>
-              <div className={styles.quantityControl}>
+              <div className={`${styles.quantityControl} ${invalidFields.quantity ? styles.inputError : ''}`}>
                 <button
                   type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  onClick={() => setQuantity(q => Math.max(MIN_COUNT, (parseInt(q, 10) || MIN_COUNT) - 1))}
                   className={styles.qtyButton}
                 >
                   −
@@ -162,13 +180,14 @@ function SalesPage() {
                 <input
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  min="1"
+                  onChange={handleQuantityChange}
+                  min={MIN_COUNT}
+                  max={MAX_COUNT}
                   className={styles.qtyInput}
                 />
                 <button
                   type="button"
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(q => Math.min(MAX_COUNT, (parseInt(q, 10) || MIN_COUNT) + 1))}
                   className={styles.qtyButton}
                 >
                   +
@@ -178,14 +197,14 @@ function SalesPage() {
 
             {selectedProduct && (
               <div className={styles.totalPreview}>
-                Итого: <strong>{formatPrice(selectedProduct.price * quantity)}</strong>
+                Итого: <strong>{formatPrice(selectedProduct.price * (parseInt(quantity, 10) || 0))}</strong>
               </div>
             )}
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className={styles.submitButton}
-              disabled={formLoading || !selectedProductId}
+              disabled={formLoading}
             >
               {formLoading ? 'Обработка...' : 'Продать'}
             </button>
@@ -194,7 +213,7 @@ function SalesPage() {
 
         <div className={styles.salesHistory}>
           <h2>История продаж</h2>
-          
+
           {loading ? (
             <div className={styles.loading}>Загрузка...</div>
           ) : sales.length === 0 ? (

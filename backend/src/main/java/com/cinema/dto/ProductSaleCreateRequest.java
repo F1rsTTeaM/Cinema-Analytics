@@ -1,5 +1,6 @@
 package com.cinema.dto;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -16,5 +17,6 @@ public class ProductSaleCreateRequest {
 
     @NotNull(message = "Количество обязательно")
     @Min(value = 1, message = "Количество должно быть больше 0")
+    @Max(value = 10, message = "За одну продажу можно продать не более 10 единиц товара")
     private Integer count;
 }

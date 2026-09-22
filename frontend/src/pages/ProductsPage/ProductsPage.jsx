@@ -34,7 +34,6 @@ function ProductsPage() {
         }
     }, [formMessage]);
 
-    // Сброс при открытии/закрытии формы
     useEffect(() => {
         if (!showForm) {
             setFormErrors({});
@@ -42,7 +41,6 @@ function ProductsPage() {
         }
     }, [showForm]);
 
-    // Автоскрытие общего сообщения страницы
     useEffect(() => {
         if (message) {
             const timer = setTimeout(() => setMessage(''), 1500);
@@ -90,7 +88,6 @@ function ProductsPage() {
             invalid.name = true;
             messages.push(`Название не должно превышать ${MAX_NAME} символов`);
         } else {
-            // Проверка дубликата
             const existing = products.find(p =>
                 p.name.toLowerCase() === name.toLowerCase() &&
                 (!editingProduct || p.id !== editingProduct.id)

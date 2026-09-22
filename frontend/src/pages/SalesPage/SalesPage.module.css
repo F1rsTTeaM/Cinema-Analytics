@@ -296,6 +296,16 @@
   margin-top: 4px;
 }
 
+.inputError {
+    border: 1px solid #e74c3c !important;
+    background-color: #fff6f6 !important;
+    outline: none;
+}
+
+.inputError:focus-within {
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+}
+
 @media (max-width: 1024px) {
   .content {
     grid-template-columns: 1fr;
