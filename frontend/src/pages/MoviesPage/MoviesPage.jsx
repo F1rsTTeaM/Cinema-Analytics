@@ -24,7 +24,7 @@ function MoviesPage() {
         if (message) {
             const timer = setTimeout(() => {
                 setMessage('');
-            }, 1500);
+            }, 3000);
             
             return () => clearTimeout(timer);
         }
@@ -36,6 +36,7 @@ function MoviesPage() {
             await createMovie(data);
             setShowForm(false);
         } catch (error) {
+            throw err;
         } finally {
             setFormLoading(false);
         }
@@ -48,6 +49,7 @@ function MoviesPage() {
             setEditingMovie(null);
             setShowForm(false);
         } catch (error) {
+            throw err;
         } finally {
             setFormLoading(false);
         }

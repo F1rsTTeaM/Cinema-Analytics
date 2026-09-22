@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.cinema.dto.MovieDTO;
 import com.cinema.service.MovieService;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -47,7 +48,7 @@ public class MovieController {
     }
 
     @PostMapping
-    public ResponseEntity<MovieDTO> createMovie(@RequestBody MovieDTO movieDTO) {
+    public ResponseEntity<MovieDTO> createMovie(@Valid @RequestBody MovieDTO movieDTO) {
         log.info("POST /api/movies - запрос на создание фильма: '{}' (жанр: {}, длительность: {} мин)",
                 movieDTO.getTitle(), movieDTO.getGenre(), movieDTO.getDurationMinutes());
         MovieDTO created = movieService.createMovie(movieDTO);
@@ -57,7 +58,7 @@ public class MovieController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MovieDTO> updateMovie(@PathVariable Long id, @RequestBody MovieDTO movieDTO) {
+    public ResponseEntity<MovieDTO> updateMovie(@PathVariable Long id, @Valid @RequestBody MovieDTO movieDTO) {
         log.info("PUT /api/movies/{} - запрос на обновление фильма: '{}'", id, movieDTO.getTitle());
         MovieDTO updated = movieService.updateMovie(id, movieDTO);
         log.info("PUT /api/movies/{} - фильм успешно обновлён", id);

@@ -42,7 +42,7 @@ export const useMovies = () => {
       await fetchMovies();
       return response.data;
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка создания фильма';
+      const errorMsg = extractErrorMessage(err, 'Ошибка создания фильма');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -66,7 +66,7 @@ export const useMovies = () => {
       await fetchMovies();
       return response.data;
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка обновления фильма';
+      const errorMsg = extractErrorMessage(err, 'Ошибка обновления фильма');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -89,7 +89,7 @@ export const useMovies = () => {
       setMessage('✔️ Фильм успешно удалён!');
       await fetchMovies();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка удаления фильма';
+      const errorMsg = extractErrorMessage(err, 'Ошибка удаления фильма');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -138,3 +138,20 @@ export const useMovies = () => {
     searchMovies
   };
 };
+
+function extractErrorMessage(err, fallback) {
+  const data = err.response?.data;
+
+  if (!data) return fallback;
+
+  if (typeof data === 'string') return data;
+
+  if (data.message) return data.message;
+
+  if (typeof data === 'object') {
+    const values = Object.values(data).filter(v => typeof v === 'string');
+    if (values.length > 0) return values.join('; ');
+  }
+
+  return fallback;
+}

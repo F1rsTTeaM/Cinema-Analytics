@@ -19,10 +19,10 @@ public class Movie {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 256)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 256)
     private String genre;
 
     @Column(name = "duration_minutes", nullable = false)
