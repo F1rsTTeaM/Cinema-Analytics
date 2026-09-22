@@ -42,7 +42,7 @@ export const useProducts = () => {
       await fetchProducts();
       return response.data;
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка создания товара';
+      const errorMsg = extractErrorMessage(err, 'Ошибка создания товара');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -66,7 +66,7 @@ export const useProducts = () => {
       await fetchProducts();
       return response.data;
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка обновления товара';
+      const errorMsg = extractErrorMessage(err, 'Ошибка обновления товара');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -89,7 +89,7 @@ export const useProducts = () => {
       setMessage('✔️ Товар успешно удалён!');
       await fetchProducts();
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Ошибка удаления товара';
+      const errorMsg = extractErrorMessage(err, 'Ошибка удаления товара');
       setError(errorMsg);
       setMessage('❌ ' + errorMsg);
       throw err;
@@ -138,3 +138,15 @@ export const useProducts = () => {
     searchProducts
   };
 };
+
+function extractErrorMessage(err, fallback) {
+  const data = err.response?.data;
+  if (!data) return fallback;
+  if (typeof data === 'string') return data;
+  if (data.message) return data.message;
+  if (typeof data === 'object') {
+    const values = Object.values(data).filter(v => typeof v === 'string');
+    if (values.length) return values.join('; ');
+  }
+  return fallback;
+}

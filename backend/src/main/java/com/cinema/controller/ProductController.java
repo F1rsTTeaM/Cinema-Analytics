@@ -73,7 +73,6 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
         log.info("DELETE /api/products/{} - запрос на удаление товара", id);
         productService.deleteProduct(id);
         log.info("DELETE /api/products/{} - товар успешно удалён", id);

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useProducts } from '../../hooks/useProducts';
 import styles from './ProductsPage.module.css';
 
+const MAX_NAME = 100;
+const MIN_NAME = 2;
+const MAX_PRICE = 5000;
+
 function ProductsPage() {
     const {
         products,
@@ -19,87 +23,45 @@ function ProductsPage() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
     const [formErrors, setFormErrors] = useState({});
-    const [formSuccess, setFormSuccess] = useState('');
+    const [formMessage, setFormMessage] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [formData, setFormData] = useState({
-        name: '',
-        price: ''
-    });
+    const [formData, setFormData] = useState({ name: '', price: '' });
 
     useEffect(() => {
-        if (showForm) {
+        if (formMessage) {
+            const timer = setTimeout(() => setFormMessage(''), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [formMessage]);
+
+    // Сброс при открытии/закрытии формы
+    useEffect(() => {
+        if (!showForm) {
             setFormErrors({});
-            setFormSuccess('');
+            setFormMessage('');
         }
     }, [showForm]);
 
+    // Автоскрытие общего сообщения страницы
     useEffect(() => {
         if (message) {
-            const timer = setTimeout(() => {
-                setMessage('');
-            }, 1500);
-
+            const timer = setTimeout(() => setMessage(''), 1500);
             return () => clearTimeout(timer);
         }
     }, [message, setMessage]);
-
-    const validateForm = () => {
-        const errors = {};
-        let isValid = true;
-
-        if (!formData.name.trim()) {
-            errors.name = 'Название товара обязательно';
-            isValid = false;
-        } else if (formData.name.trim().length < 2) {
-            errors.name = 'Название должно содержать минимум 2 символа';
-            isValid = false;
-        } else if (formData.name.trim().length > 100) {
-            errors.name = 'Название не должно превышать 100 символов';
-            isValid = false;
-        }
-
-        if (!formData.price) {
-            errors.price = 'Цена обязательна';
-            isValid = false;
-        } else if (parseFloat(formData.price) < 0) {
-            errors.price = 'Цена не может быть отрицательной';
-            isValid = false;
-        } else if (parseFloat(formData.price) > 100000) {
-            errors.price = 'Цена не может превышать 100 000 ₽';
-            isValid = false;
-        }
-
-        if (!editingProduct) {
-            const existing = products.find(
-                p => p.name.toLowerCase() === formData.name.trim().toLowerCase()
-            );
-            if (existing) {
-                errors.name = 'Товар с таким названием уже существует';
-                isValid = false;
-            }
-        } else {
-            const existing = products.find(
-                p => p.name.toLowerCase() === formData.name.trim().toLowerCase() && p.id !== editingProduct.id
-            );
-            if (existing) {
-                errors.name = 'Товар с таким названием уже существует';
-                isValid = false;
-            }
-        }
-
-        setFormErrors(errors);
-        return isValid;
-    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
         if (formErrors[name]) {
-            setFormErrors(prev => ({ ...prev, [name]: '' }));
+            setFormErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
         }
-        setFormSuccess('');
-        setMessage('');
+        if (formMessage) setFormMessage('');
     };
 
     const handleSearch = (e) => {
@@ -110,21 +72,69 @@ function ProductsPage() {
 
     const handleRefresh = () => {
         setSearchQuery('');
-        if (fetchProducts) {
-            fetchProducts();
+        if (fetchProducts) fetchProducts();
+    };
+
+    const validateForm = () => {
+        const invalid = {};
+        const messages = [];
+
+        const name = formData.name.trim();
+        if (!name) {
+            invalid.name = true;
+            messages.push('Название товара обязательно');
+        } else if (name.length < MIN_NAME) {
+            invalid.name = true;
+            messages.push(`Название должно содержать минимум ${MIN_NAME} символа`);
+        } else if (name.length > MAX_NAME) {
+            invalid.name = true;
+            messages.push(`Название не должно превышать ${MAX_NAME} символов`);
+        } else {
+            // Проверка дубликата
+            const existing = products.find(p =>
+                p.name.toLowerCase() === name.toLowerCase() &&
+                (!editingProduct || p.id !== editingProduct.id)
+            );
+            if (existing) {
+                invalid.name = true;
+                messages.push('Товар с таким названием уже существует');
+            }
         }
+
+        if (formData.price === '' || formData.price === null) {
+            invalid.price = true;
+            messages.push('Цена обязательна');
+        } else {
+            const price = parseFloat(formData.price);
+            if (Number.isNaN(price)) {
+                invalid.price = true;
+                messages.push('Цена должна быть числом');
+            } else if (price <= 0) {
+                invalid.price = true;
+                messages.push('Цена должна быть больше 0');
+            } else if (price > MAX_PRICE) {
+                invalid.price = true;
+                messages.push(`Цена не может превышать ${MAX_PRICE.toLocaleString('ru-RU')} ₽`);
+            }
+        }
+
+        if (messages.length === 0) return null;
+        return { invalid, msg: messages.join('; ') };
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setFormMessage('');
 
-        if (!validateForm()) {
+        const result = validateForm();
+        if (result) {
+            setFormErrors(result.invalid);
+            setFormMessage('❌ ' + result.msg);
             return;
         }
+        setFormErrors({});
 
         setFormLoading(true);
-        setFormSuccess('');
-        setFormErrors({});
 
         try {
             const data = {
@@ -134,20 +144,34 @@ function ProductsPage() {
 
             if (editingProduct) {
                 await updateProduct(editingProduct.id, data);
-                setFormSuccess('✔️ Товар успешно обновлён');
             } else {
                 await createProduct(data);
-                setFormSuccess('✔️ Товар успешно создан');
             }
 
-            setFormData({ name: '', price: '' });
+            handleCancel();
+        } catch (err) {
+            const data = err.response?.data;
+            let msg = 'Ошибка сохранения';
+            let invalid = {};
 
-            setShowForm(false);
-            setEditingProduct(null);
-            setFormData({ name: '', price: '' });
-            setFormSuccess('');
-            setFormErrors({});
-        } catch (error) {
+            if (typeof data === 'string') {
+                msg = data;
+            } else if (data && typeof data === 'object') {
+                const src = data.errors || data;
+                Object.entries(src).forEach(([field, value]) => {
+                    if (typeof value === 'string') invalid[field] = true;
+                });
+
+                if (data.message) {
+                    msg = data.message;
+                } else {
+                    const values = Object.values(src).filter(v => typeof v === 'string');
+                    if (values.length) msg = values.join('; ');
+                }
+            }
+
+            setFormErrors(invalid);
+            setFormMessage('❌ ' + msg);
         } finally {
             setFormLoading(false);
         }
@@ -155,18 +179,18 @@ function ProductsPage() {
 
     const handleEdit = (product) => {
         setEditingProduct(product);
-        setFormData({
-            name: product.name,
-            price: product.price.toString()
-        });
+        setFormData({ name: product.name, price: product.price.toString() });
         setFormErrors({});
-        setFormSuccess('');
+        setFormMessage('');
         setShowForm(true);
     };
 
     const handleDelete = async (id, name) => {
         if (window.confirm(`Вы уверены, что хотите удалить товар "${name}"?`)) {
-            await deleteProduct(id);
+            try {
+                await deleteProduct(id);
+            } catch (err) {
+            }
         }
     };
 
@@ -175,18 +199,19 @@ function ProductsPage() {
         setEditingProduct(null);
         setFormData({ name: '', price: '' });
         setFormErrors({});
-        setFormSuccess('');
-        setMessage('');
+        setFormMessage('');
     };
 
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat('ru-RU', {
+    const formatPrice = (price) =>
+        new Intl.NumberFormat('ru-RU', {
             style: 'currency',
             currency: 'RUB',
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         }).format(price);
-    };
+
+    const inputClass = (field) =>
+        `${styles.input} ${formErrors[field] ? styles.inputError : ''}`;
 
     return (
         <div className={styles.container}>
@@ -198,7 +223,7 @@ function ProductsPage() {
                         setEditingProduct(null);
                         setFormData({ name: '', price: '' });
                         setFormErrors({});
-                        setFormSuccess('');
+                        setFormMessage('');
                         setShowForm(true);
                     }}
                 >
@@ -214,10 +239,7 @@ function ProductsPage() {
                     placeholder="Поиск товаров..."
                     className={styles.searchInput}
                 />
-                <button
-                    className={styles.refreshButton}
-                    onClick={handleRefresh}
-                >
+                <button className={styles.refreshButton} onClick={handleRefresh}>
                     Обновить
                 </button>
             </div>
@@ -276,13 +298,20 @@ function ProductsPage() {
                             {editingProduct ? 'Редактировать товар' : 'Добавить товар'}
                         </h2>
 
-                        {formSuccess && (
-                            <div className={styles.formSuccess}>
-                                {formSuccess}
+                        {formMessage && (
+                            <div className={`${styles.message} ${formMessage.includes('❌') ? styles.error : styles.success}`}>
+                                {formMessage}
+                                <button
+                                    type="button"
+                                    className={styles.closeMessage}
+                                    onClick={() => setFormMessage('')}
+                                >
+                                    ×
+                                </button>
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className={styles.form}>
+                        <form onSubmit={handleSubmit} className={styles.form} noValidate>
                             <div className={styles.inputGroup}>
                                 <label className={styles.label}>Название товара</label>
                                 <input
@@ -291,17 +320,8 @@ function ProductsPage() {
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="Попкорн большой"
-                                    required
-                                    className={`${styles.input} ${formErrors.name ? styles.inputError : ''}`}
+                                    className={inputClass('name')}
                                 />
-                                {formErrors.name && (
-                                    <div className={styles.fieldError}>{formErrors.name}</div>
-                                )}
-                                {!formErrors.name && formData.name && (
-                                    <div className={styles.fieldHint}>
-                                        {formData.name.length < 2 ? 'Минимум 2 символа' : '✔️ Название подходит'}
-                                    </div>
-                                )}
                             </div>
 
                             <div className={styles.inputGroup}>
@@ -312,30 +332,18 @@ function ProductsPage() {
                                     value={formData.price}
                                     onChange={handleChange}
                                     placeholder="99.99"
-                                    required
-                                    min="0"
+                                    min="0.01"
+                                    max={MAX_PRICE}
                                     step="0.01"
-                                    className={`${styles.input} ${formErrors.price ? styles.inputError : ''}`}
+                                    className={inputClass('price')}
                                 />
-                                {formErrors.price && (
-                                    <div className={styles.fieldError}>{formErrors.price}</div>
-                                )}
-                                {!formErrors.price && formData.price && (
-                                    <div className={styles.fieldHint}>
-                                        Цена: {formatPrice(parseFloat(formData.price))}
-                                    </div>
-                                )}
                             </div>
 
                             <div className={styles.buttonGroup}>
                                 <button type="submit" className={styles.submitButton} disabled={formLoading}>
                                     {formLoading ? 'Сохранение...' : (editingProduct ? 'Сохранить' : 'Создать')}
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={handleCancel}
-                                    className={styles.cancelButton}
-                                >
+                                <button type="button" onClick={handleCancel} className={styles.cancelButton}>
                                     Отмена
                                 </button>
                             </div>

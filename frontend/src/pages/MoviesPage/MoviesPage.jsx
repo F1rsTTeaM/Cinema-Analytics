@@ -35,7 +35,7 @@ function MoviesPage() {
         try {
             await createMovie(data);
             setShowForm(false);
-        } catch (error) {
+        } catch (err) {
             throw err;
         } finally {
             setFormLoading(false);
@@ -48,7 +48,7 @@ function MoviesPage() {
             await updateMovie(editingMovie.id, data);
             setEditingMovie(null);
             setShowForm(false);
-        } catch (error) {
+        } catch (err) {
             throw err;
         } finally {
             setFormLoading(false);
